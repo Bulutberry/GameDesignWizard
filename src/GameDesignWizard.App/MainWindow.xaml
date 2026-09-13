@@ -1,6 +1,7 @@
 <Window x:Class="GameDesignWizard.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:GameDesignWizard.App.Controls"
         Title="GameDesignWizard"
         Width="1280"
         Height="800"
@@ -50,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.4.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.6.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -156,11 +157,17 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="4*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Border Height="5" Background="{StaticResource AccentBrush}" CornerRadius="3" />
                     <Border Grid.Column="1" Height="5" Background="{Binding WizardSecondProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
-                    <Border Grid.Column="2" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
+                    <Border Grid.Column="2" Height="5" Background="{Binding WizardThirdProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
+                    <Border Grid.Column="3" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
+                    <Border Grid.Column="4" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
+                    <Border Grid.Column="5" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
                 </Grid>
 
                 <ScrollViewer Grid.Row="2" Margin="0,35,0,20" VerticalScrollBarVisibility="Auto"
@@ -264,89 +271,21 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <TextBlock Text="Topics" FontFamily="Segoe UI Semibold" FontSize="18" Margin="0,14,0,0" />
-                        <TextBox Style="{StaticResource InputStyle}" Text="{Binding TopicSearch, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Search available topics" Margin="0,10,0,12" />
-                        <Grid Height="250">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="18" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="11" Padding="12">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="AVAILABLE" Foreground="{StaticResource MutedInkBrush}" FontSize="11" FontWeight="Bold" Margin="3,0,0,8" />
-                                    <ListBox x:Name="AvailableTopicsList" Grid.Row="1" ItemsSource="{Binding AvailableTopics}" BorderThickness="0" Background="Transparent"
-                                             ScrollViewer.CanContentScroll="True"
-                                             VirtualizingStackPanel.IsVirtualizing="True"
-                                             VirtualizingStackPanel.VirtualizationMode="Recycling">
-                                        <ListBox.ItemContainerStyle>
-                                            <Style TargetType="ListBoxItem">
-                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                                <Setter Property="Cursor" Value="Hand" />
-                                                <EventSetter Event="MouseDoubleClick" Handler="AvailableTopic_MouseDoubleClick" />
-                                                <EventSetter Event="KeyDown" Handler="AvailableTopic_KeyDown" />
-                                            </Style>
-                                        </ListBox.ItemContainerStyle>
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="6,7">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="1" Text="Double-click to add" Foreground="{StaticResource MutedInkBrush}"
-                                                               FontSize="10" VerticalAlignment="Center" Margin="12,0,3,0" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                </Grid>
-                            </Border>
-
-                            <Border Grid.Column="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="11" Padding="12">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="SELECTED" Foreground="{StaticResource MutedInkBrush}" FontSize="11" FontWeight="Bold" Margin="3,0,0,8" />
-                                    <ListBox x:Name="SelectedTopicsList" Grid.Row="1" ItemsSource="{Binding SelectedTopics}" BorderThickness="0" Background="Transparent"
-                                             ScrollViewer.CanContentScroll="True"
-                                             VirtualizingStackPanel.IsVirtualizing="True"
-                                             VirtualizingStackPanel.VirtualizationMode="Recycling">
-                                        <ListBox.ItemContainerStyle>
-                                            <Style TargetType="ListBoxItem">
-                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                                <Setter Property="Cursor" Value="Hand" />
-                                                <EventSetter Event="MouseDoubleClick" Handler="SelectedTopic_MouseDoubleClick" />
-                                                <EventSetter Event="KeyDown" Handler="SelectedTopic_KeyDown" />
-                                            </Style>
-                                        </ListBox.ItemContainerStyle>
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="6,7">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="1" Text="Double-click to remove" Foreground="{StaticResource MutedInkBrush}"
-                                                               FontSize="10" VerticalAlignment="Center" Margin="12,0,3,0" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                </Grid>
-                            </Border>
-                        </Grid>
+                        <controls:DualListPicker DataContext="{Binding TopicPicker}" Height="270" Margin="0,14,0,0" />
                     </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer Grid.Row="2" Margin="0,35,0,20" VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding WizardStepThreeVisibility}">
+                    <Grid Height="370">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:DualListPicker DataContext="{Binding FeaturePicker}" />
+                        <controls:DualListPicker Grid.Column="2" DataContext="{Binding ArtStylePicker}" />
+                    </Grid>
                 </ScrollViewer>
 
                 <Grid Grid.Row="3">

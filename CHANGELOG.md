@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+- Add wizard step 3 for independent multi-selection of features and art styles.
+- Reuse one searchable, virtualized dual-list control for topics, features, and art styles.
+- Support double-click and Enter transfer in every dual-list picker.
+- Preserve selected options while filtering a picker or refreshing its catalog from Settings.
+- Expand the wizard progress indicator to six distinct steps.
+
 ## 0.5.0
 
 - Move every built-in catalog category into one versioned English JSON source.
