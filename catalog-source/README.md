@@ -1,11 +1,20 @@
-# Catalog source files
+# Default catalog source
 
-These UTF-8 files are the simple authoring source for large flat default catalogs. They are embedded into the application during build and remain reviewable in Git.
+`en/default-catalog.json` is the canonical English source for all nine catalogs. It is versioned in Git and embedded into the application during build. Fresh installations therefore receive the maintainer-defined defaults without a separate import.
 
-## Topics
+Each option has a stable ID, category, English name, display order, and optional relationship data. Every subgenre references its parent genre by ID. Platform entries also define their immutable `Pc`, `Mobile`, or `Other` idea-pool route. Keep IDs stable when editing existing entries.
 
-Edit `en/topics.txt` and add one English topic per line. Blank lines and lines beginning with `#` are ignored. Duplicate names are ignored without regard to letter casing. File order becomes the default display order.
+## Bulk authoring workflow
 
-On the next build and application launch, new names are merged into the local SQLite catalog. Removing a line does not archive an option that has already been added to an existing user database. Archive that option in Settings instead.
+1. Run the app and use **Settings / Catalogs / Import TXT / XLSX** for each category. A subgenre file is imported once for each selected parent genre.
+2. Archive any entries that should not ship as defaults.
+3. Close the app after reviewing the active lists.
+4. From the repository root, export the complete active local catalog:
 
-For hundreds of rows, paste a single Excel column into this file or export that column as UTF-8 text. The planned catalog import screen will accept TXT and XLSX directly and show a validation preview before saving.
+```powershell
+dotnet run --project .\tools\GameDesignWizard.CatalogTool -- export-defaults --version 0.6.0
+```
+
+The command reads `%LOCALAPPDATA%\GameDesignWizard\game-design-wizard.db` and atomically replaces `en/default-catalog.json`. Use `--database` or `--output` to select different paths. Review the JSON diff and build the application before committing it.
+
+The exporter preserves IDs, parent relationships, order, descriptions, and platform routing. It omits archived entries and rejects an incomplete catalog. New installations receive the exported lists after the next build. Existing installations keep their custom entries and archive states while receiving shipped options that are missing locally.

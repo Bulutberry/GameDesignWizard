@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- Move every built-in catalog category into one versioned English JSON source.
+- Embed default catalog data so fresh installations require no manual import.
+- Merge missing shipped defaults on startup without restoring archived items or deleting custom entries.
+- Add a catalog maintenance command that exports all active local options as the next distributable default catalog.
+- Validate identifiers, category coverage, subgenre relationships, names, metadata, and fixed PC/Mobile pool routing before defaults are loaded or exported.
+
 ## 0.4.0
 
 - Replace topic plus and minus buttons with double-click transfer in both lists.

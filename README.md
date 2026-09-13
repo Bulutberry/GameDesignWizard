@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.4.0 validates the visual direction, persistent dynamic catalogs, the first two wizard steps, and bulk catalog import:
+Prototype 0.5.0 validates the visual direction, persistent dynamic catalogs, the first two wizard steps, bulk catalog import, and distributable defaults:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -16,11 +16,13 @@ Prototype 0.4.0 validates the visual direction, persistent dynamic catalogs, the
 - SQLite-backed add, archive, and restore behavior that survives app restarts
 - Parent-genre selection for subgenres and dependent archival when a genre is archived
 - TXT and single-column XLSX import with a validation preview and atomic save
+- One versioned English JSON source for all nine default catalog categories
+- A maintainer command that promotes the active local catalog into the next bundled default catalog
 - Custom-platform routing explained as Other
 
 Catalog data is stored locally in `%LOCALAPPDATA%\GameDesignWizard\game-design-wizard.db`.
 
-Default English topics are authored one per line in [`catalog-source/en/topics.txt`](catalog-source/en/topics.txt). New names are embedded during build and merged into each local catalog on application startup. See [`catalog-source/README.md`](catalog-source/README.md) for the bulk-authoring rules.
+All default options are versioned in [`catalog-source/en/default-catalog.json`](catalog-source/en/default-catalog.json). The JSON is embedded during build, so a fresh GitHub checkout starts with these defaults without importing any files. Application upgrades add missing shipped defaults while preserving local custom options and archive states. See [`catalog-source/README.md`](catalog-source/README.md) for the maintainer workflow.
 
 To add options to one local installation, select a category in Settings and use **Import TXT / XLSX**. See [`docs/catalog-import.md`](docs/catalog-import.md) for the supported file layout and validation rules.
 

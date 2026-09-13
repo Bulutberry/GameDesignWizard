@@ -1,26 +1,67 @@
-using System.Security.Cryptography;
-using System.Text;
 using GameDesignWizard.Core.Catalog;
 using GameDesignWizard.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameDesignWizard.Infrastructure.Catalog;
 
-public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) : ICatalogRepository
+public sealed class SqliteCatalogRepository : ICatalogRepository
 {
-    private static readonly CatalogOption[] BuiltInOptions = CreateBuiltInOptions();
+    private readonly AppDbContextFactory _contextFactory;
+    private readonly IDefaultCatalogProvider _defaultCatalogProvider;
+
+    public SqliteCatalogRepository(AppDbContextFactory contextFactory)
+        : this(contextFactory, new EmbeddedDefaultCatalogProvider())
+    {
+    }
+
+    public SqliteCatalogRepository(
+        AppDbContextFactory contextFactory,
+        IDefaultCatalogProvider defaultCatalogProvider)
+    {
+        _contextFactory = contextFactory;
+        _defaultCatalogProvider = defaultCatalogProvider;
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        await using var context = contextFactory.CreateDbContext();
+        await using var context = _contextFactory.CreateDbContext();
         await context.Database.MigrateAsync(cancellationToken);
 
-        var existingIds = await context.CatalogOptions
-            .Select(option => option.Id)
-            .ToListAsync(cancellationToken);
-        var missingBuiltIns = BuiltInOptions
-            .Where(option => !existingIds.Contains(option.Id))
-            .Select(Clone)
+        var defaults = _defaultCatalogProvider.Load();
+        var existing = await context.CatalogOptions.ToListAsync(cancellationToken);
+        var existingById = existing.ToDictionary(option => option.Id);
+        var existingByName = existing.ToDictionary(
+            option => (option.Category, option.NormalizedName),
+            option => option);
+        var identityMap = new Dictionary<Guid, Guid>();
+
+        foreach (var defaultOption in defaults)
+        {
+            if (existingById.TryGetValue(defaultOption.Id, out var sameIdentity))
+            {
+                identityMap[defaultOption.Id] = sameIdentity.Id;
+            }
+            else if (existingByName.TryGetValue(
+                         (defaultOption.Category, defaultOption.NormalizedName),
+                         out var sameName))
+            {
+                identityMap[defaultOption.Id] = sameName.Id;
+            }
+        }
+
+        var missingBuiltIns = defaults
+            .Where(option => !identityMap.ContainsKey(option.Id))
+            .Select(option =>
+            {
+                var clone = Clone(option);
+                if (clone.ParentOptionId is Guid parentId
+                    && identityMap.TryGetValue(parentId, out var mappedParentId))
+                {
+                    clone.ParentOptionId = mappedParentId;
+                }
+
+                return clone;
+            })
             .ToArray();
         if (missingBuiltIns.Length > 0)
         {
@@ -33,7 +74,7 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
         CatalogCategory category,
         CancellationToken cancellationToken = default)
     {
-        await using var context = contextFactory.CreateDbContext();
+        await using var context = _contextFactory.CreateDbContext();
         return await context.CatalogOptions
             .AsNoTracking()
             .Where(option => option.Category == category)
@@ -69,7 +110,7 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
             throw new InvalidOperationException($"{duplicateName} appears more than once in the import selection.");
         }
 
-        await using var context = contextFactory.CreateDbContext();
+        await using var context = _contextFactory.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         var normalizedNames = names.Select(NormalizeName).ToArray();
         var existingNames = await context.CatalogOptions
@@ -135,7 +176,7 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
         bool isActive,
         CancellationToken cancellationToken = default)
     {
-        await using var context = contextFactory.CreateDbContext();
+        await using var context = _contextFactory.CreateDbContext();
         var option = await context.CatalogOptions.SingleOrDefaultAsync(
             candidate => candidate.Id == id,
             cancellationToken) ?? throw new InvalidOperationException("The catalog option no longer exists.");
@@ -160,132 +201,6 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
 
         await context.SaveChangesAsync(cancellationToken);
         return Clone(option);
-    }
-
-    private static CatalogOption[] CreateBuiltInOptions()
-    {
-        var actionId = BuiltInId(CatalogCategory.Genre, "Action");
-        var adventureId = BuiltInId(CatalogCategory.Genre, "Adventure");
-        var rolePlayingId = BuiltInId(CatalogCategory.Genre, "Role-Playing");
-        var strategyId = BuiltInId(CatalogCategory.Genre, "Strategy");
-        var simulationId = BuiltInId(CatalogCategory.Genre, "Simulation");
-
-        return
-        [
-            CreatePlatform("0d3034e8-e927-4a2f-a96f-ae610a47fb2f", "PC", 0, PlatformPoolGroup.Pc),
-            CreatePlatform("db7d530a-5cb9-411c-bb8e-7006282f63d7", "Mobile", 1, PlatformPoolGroup.Mobile),
-            CreatePlatform("1826ccb8-23f3-44a8-af8c-538d25e7e036", "Console", 2, PlatformPoolGroup.Other),
-            CreatePlatform("ec646f17-5476-4d76-992e-223d4b4d392b", "VR", 3, PlatformPoolGroup.Other),
-            CreatePlatform("e0cb0941-ddc3-4b03-956f-7824da01c224", "Board Game", 4, PlatformPoolGroup.Other),
-
-            CreateBuiltIn(CatalogCategory.Genre, "Action", 0),
-            CreateBuiltIn(CatalogCategory.Genre, "Adventure", 1),
-            CreateBuiltIn(CatalogCategory.Genre, "Role-Playing", 2),
-            CreateBuiltIn(CatalogCategory.Genre, "Strategy", 3),
-            CreateBuiltIn(CatalogCategory.Genre, "Simulation", 4),
-
-            CreateBuiltIn(CatalogCategory.Subgenre, "Platformer", 0, actionId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Shooter", 1, actionId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Point-and-Click", 2, adventureId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Narrative Adventure", 3, adventureId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Action RPG", 4, rolePlayingId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Turn-Based RPG", 5, rolePlayingId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Real-Time Strategy", 6, strategyId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Turn-Based Strategy", 7, strategyId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Life Simulation", 8, simulationId),
-            CreateBuiltIn(CatalogCategory.Subgenre, "Management Simulation", 9, simulationId),
-
-            .. CreateBuiltInTopics(),
-
-            CreateBuiltIn(CatalogCategory.Mechanic, "Exploration", 0),
-            CreateBuiltIn(CatalogCategory.Mechanic, "Combat", 1),
-            CreateBuiltIn(CatalogCategory.Mechanic, "Crafting", 2),
-            CreateBuiltIn(CatalogCategory.Mechanic, "Resource Management", 3),
-            CreateBuiltIn(CatalogCategory.Mechanic, "Dialogue Choices", 4),
-            CreateBuiltIn(CatalogCategory.Mechanic, "Stealth", 5),
-
-            CreateBuiltIn(CatalogCategory.Feature, "Single Player", 0),
-            CreateBuiltIn(CatalogCategory.Feature, "Multiplayer", 1),
-            CreateBuiltIn(CatalogCategory.Feature, "Co-op", 2),
-            CreateBuiltIn(CatalogCategory.Feature, "Procedural Generation", 3),
-            CreateBuiltIn(CatalogCategory.Feature, "Mod Support", 4),
-
-            CreateBuiltIn(CatalogCategory.ArtStyle, "Pixel Art", 0),
-            CreateBuiltIn(CatalogCategory.ArtStyle, "Stylized", 1),
-            CreateBuiltIn(CatalogCategory.ArtStyle, "Realistic", 2),
-            CreateBuiltIn(CatalogCategory.ArtStyle, "Low Poly", 3),
-            CreateBuiltIn(CatalogCategory.ArtStyle, "Hand-Drawn", 4),
-
-            CreateBuiltIn(CatalogCategory.DevelopmentDuration, "1-3 Months", 0),
-            CreateBuiltIn(CatalogCategory.DevelopmentDuration, "3-6 Months", 1),
-            CreateBuiltIn(CatalogCategory.DevelopmentDuration, "6-12 Months", 2),
-            CreateBuiltIn(CatalogCategory.DevelopmentDuration, "1-2 Years", 3),
-            CreateBuiltIn(CatalogCategory.DevelopmentDuration, "2+ Years", 4),
-
-            CreateBuiltIn(CatalogCategory.TeamSize, "Solo", 0),
-            CreateBuiltIn(CatalogCategory.TeamSize, "2-5 People", 1),
-            CreateBuiltIn(CatalogCategory.TeamSize, "6-10 People", 2),
-            CreateBuiltIn(CatalogCategory.TeamSize, "11-25 People", 3),
-            CreateBuiltIn(CatalogCategory.TeamSize, "26+ People", 4)
-        ];
-    }
-
-    private static CatalogOption CreatePlatform(
-        string id,
-        string name,
-        int sortOrder,
-        PlatformPoolGroup poolGroup) =>
-        CreateBuiltIn(CatalogCategory.Platform, name, sortOrder, null, Guid.Parse(id), poolGroup);
-
-    private static IEnumerable<CatalogOption> CreateBuiltInTopics()
-    {
-        const string resourceName = "GameDesignWizard.Infrastructure.Catalog.Defaults.topics.en.txt";
-        using var stream = typeof(SqliteCatalogRepository).Assembly.GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException($"The embedded default topic catalog '{resourceName}' is missing.");
-        using var reader = new StreamReader(stream, Encoding.UTF8, true);
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var sortOrder = 0;
-        while (reader.ReadLine() is { } line)
-        {
-            var name = line.Trim();
-            if (name.Length == 0 || name.StartsWith('#') || !names.Add(name))
-            {
-                continue;
-            }
-
-            yield return CreateBuiltIn(CatalogCategory.Topic, name, sortOrder++);
-        }
-    }
-
-    private static CatalogOption CreateBuiltIn(
-        CatalogCategory category,
-        string name,
-        int sortOrder,
-        Guid? parentOptionId = null,
-        Guid? id = null,
-        PlatformPoolGroup poolGroup = PlatformPoolGroup.Other)
-    {
-        var timestamp = new DateTime(2026, 9, 13, 0, 0, 0, DateTimeKind.Utc);
-        return new CatalogOption
-        {
-            Id = id ?? BuiltInId(category, name),
-            Category = category,
-            NameEnglish = name,
-            NormalizedName = NormalizeName(name),
-            ParentOptionId = parentOptionId,
-            SortOrder = sortOrder,
-            IsActive = true,
-            IsBuiltIn = true,
-            PlatformPoolGroup = poolGroup,
-            CreatedAtUtc = timestamp,
-            UpdatedAtUtc = timestamp
-        };
-    }
-
-    private static Guid BuiltInId(CatalogCategory category, string name)
-    {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"GameDesignWizard:{category}:{name}"));
-        return new Guid(hash.AsSpan(0, 16));
     }
 
     private static CatalogOption Clone(CatalogOption option) => new()

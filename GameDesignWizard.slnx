@@ -4,4 +4,7 @@
     <Project Path="src/GameDesignWizard.Core/GameDesignWizard.Core.csproj" />
     <Project Path="src/GameDesignWizard.Infrastructure/GameDesignWizard.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/GameDesignWizard.CatalogTool/GameDesignWizard.CatalogTool.csproj" />
+  </Folder>
 </Solution>

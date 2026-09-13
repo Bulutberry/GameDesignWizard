@@ -32,4 +32,4 @@ Time Travel
 
 Existing names, duplicates within the file, names longer than 200 characters, and formula cells are skipped in the preview. If the accepted batch cannot be saved completely, the database remains unchanged.
 
-The import adds custom options to the local installation. Maintainers preparing built-in English topics should edit `catalog-source/en/topics.txt` so the defaults remain reviewable in Git and ship with new builds.
+The import adds custom options to the local installation. To turn a reviewed local catalog into defaults for future downloads, run the repository's catalog maintenance tool as described in [`catalog-source/README.md`](../catalog-source/README.md). It exports all nine active categories to the versioned English JSON source; users never need to import these bundled defaults themselves.

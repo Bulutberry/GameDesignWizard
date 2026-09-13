@@ -12,8 +12,8 @@
     <PackageReference Include="ClosedXML" Version="0.105.1" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="../../catalog-source/en/topics.txt">
-      <LogicalName>GameDesignWizard.Infrastructure.Catalog.Defaults.topics.en.txt</LogicalName>
+    <EmbeddedResource Include="../../catalog-source/en/default-catalog.json">
+      <LogicalName>GameDesignWizard.Infrastructure.Catalog.Defaults.default-catalog.en.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 </Project>
