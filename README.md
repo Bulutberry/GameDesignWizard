@@ -4,21 +4,25 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.3.0 validates the visual direction, persistent dynamic catalogs, and the first two wizard steps:
+Prototype 0.4.0 validates the visual direction, persistent dynamic catalogs, the first two wizard steps, and bulk catalog import:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
 - Genre selection with dependent subgenre choices
 - Searchable, virtualized topic transfer lists designed for hundreds of entries
+- Double-click or Enter keyboard transfer between available and selected topics
 - Fixed PC, Mobile, and Other idea-pool groups
 - Settings management for platforms, genres, subgenres, topics, mechanics, features, art styles, development durations, and team sizes
 - SQLite-backed add, archive, and restore behavior that survives app restarts
 - Parent-genre selection for subgenres and dependent archival when a genre is archived
+- TXT and single-column XLSX import with a validation preview and atomic save
 - Custom-platform routing explained as Other
 
 Catalog data is stored locally in `%LOCALAPPDATA%\GameDesignWizard\game-design-wizard.db`.
 
 Default English topics are authored one per line in [`catalog-source/en/topics.txt`](catalog-source/en/topics.txt). New names are embedded during build and merged into each local catalog on application startup. See [`catalog-source/README.md`](catalog-source/README.md) for the bulk-authoring rules.
+
+To add options to one local installation, select a category in Settings and use **Import TXT / XLSX**. See [`docs/catalog-import.md`](docs/catalog-import.md) for the supported file layout and validation rules.
 
 ## Run locally
 

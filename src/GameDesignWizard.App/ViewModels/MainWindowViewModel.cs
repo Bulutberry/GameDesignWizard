@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using GameDesignWizard.Core.Catalog;
@@ -8,6 +9,7 @@ namespace GameDesignWizard.App.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly ICatalogRepository? _catalogRepository;
+    private readonly ICatalogFileReader? _catalogFileReader;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private readonly List<CatalogOptionViewModel> _allTopics = [];
     private AppPage _currentPage = AppPage.Home;
@@ -24,13 +26,21 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isInitialized;
 
     public MainWindowViewModel()
-        : this(null)
+        : this(null, null)
     {
     }
 
     public MainWindowViewModel(ICatalogRepository? catalogRepository)
+        : this(catalogRepository, null)
+    {
+    }
+
+    public MainWindowViewModel(
+        ICatalogRepository? catalogRepository,
+        ICatalogFileReader? catalogFileReader)
     {
         _catalogRepository = catalogRepository;
+        _catalogFileReader = catalogFileReader;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -268,6 +278,106 @@ public sealed class MainWindowViewModel : ObservableObject
         await LoadWizardCatalogsAsync(cancellationToken);
         _isInitialized = true;
         await LoadSelectedCatalogAsync(cancellationToken);
+    }
+
+    public async Task<CatalogImportPreviewViewModel> CreateCatalogImportPreviewAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        if (_catalogFileReader is null || _catalogRepository is null)
+        {
+            throw new InvalidOperationException("Catalog file import is not available in preview mode.");
+        }
+
+        var category = SelectedCatalogCategory.Category;
+        var parentId = category == CatalogCategory.Subgenre ? SelectedParentGenre?.Id : null;
+        if (category == CatalogCategory.Subgenre && parentId is null)
+        {
+            throw new InvalidOperationException("Select a parent genre before importing subgenres.");
+        }
+
+        var fileRows = await _catalogFileReader.ReadAsync(filePath, cancellationToken);
+        if (fileRows.Count == 0)
+        {
+            throw new InvalidOperationException("The selected file does not contain any catalog names.");
+        }
+
+        var existingOptions = await _catalogRepository.GetOptionsAsync(category, cancellationToken);
+        var existingNames = existingOptions
+            .Select(option => option.NormalizedName)
+            .ToHashSet(StringComparer.Ordinal);
+        var namesInFile = new HashSet<string>(StringComparer.Ordinal);
+        var previewRows = new List<CatalogImportRowViewModel>(fileRows.Count);
+
+        foreach (var row in fileRows)
+        {
+            var normalizedName = row.NameEnglish.ToUpperInvariant();
+            var status = row.Error;
+            var isReady = false;
+            if (status is null && row.NameEnglish.Length > 200)
+            {
+                status = "Name exceeds 200 characters";
+            }
+            else if (status is null && existingNames.Contains(normalizedName))
+            {
+                status = "Already exists";
+            }
+            else if (status is null && !namesInFile.Add(normalizedName))
+            {
+                status = "Duplicate in file";
+            }
+            else if (status is null)
+            {
+                status = "Ready";
+                isReady = true;
+            }
+
+            previewRows.Add(new CatalogImportRowViewModel(
+                row.SourceRow,
+                row.NameEnglish,
+                status,
+                isReady));
+        }
+
+        return new CatalogImportPreviewViewModel(
+            Path.GetFileName(filePath),
+            category,
+            SelectedCatalogCategory.DisplayName,
+            parentId,
+            previewRows);
+    }
+
+    public async Task ApplyCatalogImportAsync(
+        CatalogImportPreviewViewModel preview,
+        CancellationToken cancellationToken = default)
+    {
+        if (_catalogRepository is null)
+        {
+            throw new InvalidOperationException("Catalog import is not available in preview mode.");
+        }
+
+        var names = preview.Rows.Where(row => row.IsReady).Select(row => row.Name).ToArray();
+        if (names.Length == 0)
+        {
+            throw new InvalidOperationException("There are no valid rows to import.");
+        }
+
+        await _catalogRepository.AddOptionsAsync(
+            preview.Category,
+            names,
+            preview.ParentOptionId,
+            cancellationToken);
+        await LoadSelectedCatalogAsync(cancellationToken);
+        if (preview.Category == CatalogCategory.Platform)
+        {
+            await LoadPlatformsAsync(cancellationToken);
+        }
+        else if (preview.Category is CatalogCategory.Genre or CatalogCategory.Subgenre or CatalogCategory.Topic)
+        {
+            await LoadWizardCatalogsAsync(cancellationToken);
+        }
+
+        SettingsMessage = $"{names.Length} option(s) imported from {preview.SourceFileName}.";
     }
 
     private AppPage CurrentPage

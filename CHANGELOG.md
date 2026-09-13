@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- Replace topic plus and minus buttons with double-click transfer in both lists.
+- Support Enter as the keyboard equivalent for topic transfer.
+- Import UTF-8 TXT and single-column XLSX files into the selected Settings category.
+- Preview ready, existing, duplicate, invalid, and formula rows before import.
+- Apply every accepted import in one SQLite transaction.
+- Require one selected parent genre when importing subgenres.
+
 ## 0.3.0
 
 - Add wizard step 2 for genre, dependent subgenre, and multi-topic selection.

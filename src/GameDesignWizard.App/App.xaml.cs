@@ -14,7 +14,7 @@ public partial class App : Application
         try
         {
             var repository = new SqliteCatalogRepository(new AppDbContextFactory());
-            var viewModel = new MainWindowViewModel(repository);
+            var viewModel = new MainWindowViewModel(repository, new CatalogFileReader());
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);

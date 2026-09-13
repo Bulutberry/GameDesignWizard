@@ -50,7 +50,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.3.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.4.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -281,22 +281,28 @@
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="AVAILABLE" Foreground="{StaticResource MutedInkBrush}" FontSize="11" FontWeight="Bold" Margin="3,0,0,8" />
-                                    <ListBox Grid.Row="1" ItemsSource="{Binding AvailableTopics}" BorderThickness="0" Background="Transparent"
+                                    <ListBox x:Name="AvailableTopicsList" Grid.Row="1" ItemsSource="{Binding AvailableTopics}" BorderThickness="0" Background="Transparent"
                                              ScrollViewer.CanContentScroll="True"
                                              VirtualizingStackPanel.IsVirtualizing="True"
                                              VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                <Setter Property="Cursor" Value="Hand" />
+                                                <EventSetter Event="MouseDoubleClick" Handler="AvailableTopic_MouseDoubleClick" />
+                                                <EventSetter Event="KeyDown" Handler="AvailableTopic_KeyDown" />
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Grid Margin="2,3">
+                                                <Grid Margin="6,7">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <Button Grid.Column="1" Content="＋" Width="30" Height="28" Padding="0"
-                                                            Style="{StaticResource SecondaryButtonStyle}"
-                                                            Command="{Binding DataContext.AddTopicCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                            CommandParameter="{Binding}" />
+                                                    <TextBlock Grid.Column="1" Text="Double-click to add" Foreground="{StaticResource MutedInkBrush}"
+                                                               FontSize="10" VerticalAlignment="Center" Margin="12,0,3,0" />
                                                 </Grid>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
@@ -311,22 +317,28 @@
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="SELECTED" Foreground="{StaticResource MutedInkBrush}" FontSize="11" FontWeight="Bold" Margin="3,0,0,8" />
-                                    <ListBox Grid.Row="1" ItemsSource="{Binding SelectedTopics}" BorderThickness="0" Background="Transparent"
+                                    <ListBox x:Name="SelectedTopicsList" Grid.Row="1" ItemsSource="{Binding SelectedTopics}" BorderThickness="0" Background="Transparent"
                                              ScrollViewer.CanContentScroll="True"
                                              VirtualizingStackPanel.IsVirtualizing="True"
                                              VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                <Setter Property="Cursor" Value="Hand" />
+                                                <EventSetter Event="MouseDoubleClick" Handler="SelectedTopic_MouseDoubleClick" />
+                                                <EventSetter Event="KeyDown" Handler="SelectedTopic_KeyDown" />
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Grid Margin="2,3">
+                                                <Grid Margin="6,7">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <Button Grid.Column="1" Content="−" Width="30" Height="28" Padding="0"
-                                                            Style="{StaticResource SecondaryButtonStyle}"
-                                                            Command="{Binding DataContext.RemoveTopicCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                            CommandParameter="{Binding}" />
+                                                    <TextBlock Grid.Column="1" Text="Double-click to remove" Foreground="{StaticResource MutedInkBrush}"
+                                                               FontSize="10" VerticalAlignment="Center" Margin="12,0,3,0" />
                                                 </Grid>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
@@ -382,11 +394,15 @@
 
                 <StackPanel>
                     <TextBlock Text="SETTINGS / CATALOGS" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="11" />
-                    <ComboBox ItemsSource="{Binding CatalogCategories}"
-                              SelectedItem="{Binding SelectedCatalogCategory}"
-                              DisplayMemberPath="DisplayName"
-                              Width="260" Height="38" HorizontalAlignment="Left" Margin="0,12,0,0"
-                              Padding="10,4" FontSize="14" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <ComboBox ItemsSource="{Binding CatalogCategories}"
+                                  SelectedItem="{Binding SelectedCatalogCategory}"
+                                  DisplayMemberPath="DisplayName"
+                                  Width="260" Height="38"
+                                  Padding="10,4" FontSize="14" />
+                        <Button Content="Import TXT / XLSX" Style="{StaticResource SecondaryButtonStyle}"
+                                Click="ImportCatalog_Click" Padding="16,8" Margin="12,0,0,0" />
+                    </StackPanel>
                     <TextBlock Text="{Binding CatalogHeading}" FontFamily="Segoe UI Semibold" FontSize="32" Margin="0,12,0,0" />
                     <TextBlock Text="Changes appear immediately in the idea wizard. Archived options remain available to saved ideas."
                                Foreground="{StaticResource MutedInkBrush}" FontSize="14" Margin="0,8,0,0" />

@@ -46,17 +46,40 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
         CatalogCategory category,
         string nameEnglish,
         Guid? parentOptionId = null,
+        CancellationToken cancellationToken = default) =>
+        (await AddOptionsAsync(category, [nameEnglish], parentOptionId, cancellationToken)).Single();
+
+    public async Task<IReadOnlyList<CatalogOption>> AddOptionsAsync(
+        CatalogCategory category,
+        IReadOnlyCollection<string> namesEnglish,
+        Guid? parentOptionId = null,
         CancellationToken cancellationToken = default)
     {
-        var displayName = CleanName(nameEnglish);
-        var normalizedName = NormalizeName(displayName);
-        await using var context = contextFactory.CreateDbContext();
-
-        if (await context.CatalogOptions.AnyAsync(
-                option => option.Category == category && option.NormalizedName == normalizedName,
-                cancellationToken))
+        if (namesEnglish.Count == 0)
         {
-            throw new InvalidOperationException($"{displayName} already exists in the {GetCategoryLabel(category)} catalog.");
+            return [];
+        }
+
+        var names = namesEnglish.Select(CleanName).ToArray();
+        var duplicateName = names
+            .GroupBy(NormalizeName)
+            .FirstOrDefault(group => group.Count() > 1)?.First();
+        if (duplicateName is not null)
+        {
+            throw new InvalidOperationException($"{duplicateName} appears more than once in the import selection.");
+        }
+
+        await using var context = contextFactory.CreateDbContext();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var normalizedNames = names.Select(NormalizeName).ToArray();
+        var existingNames = await context.CatalogOptions
+            .Where(option => option.Category == category && normalizedNames.Contains(option.NormalizedName))
+            .Select(option => option.NameEnglish)
+            .ToListAsync(cancellationToken);
+
+        if (existingNames.Count > 0)
+        {
+            throw new InvalidOperationException($"{existingNames[0]} already exists in the {GetCategoryLabel(category)} catalog.");
         }
 
         if (category == CatalogCategory.Subgenre)
@@ -84,24 +107,27 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
             .Select(option => (int?)option.SortOrder)
             .MaxAsync(cancellationToken);
         var now = DateTime.UtcNow;
-        var option = new CatalogOption
-        {
-            Id = Guid.NewGuid(),
-            Category = category,
-            NameEnglish = displayName,
-            NormalizedName = normalizedName,
-            ParentOptionId = parentOptionId,
-            SortOrder = highestSortOrder is null ? 0 : highestSortOrder.Value + 1,
-            IsActive = true,
-            IsBuiltIn = false,
-            PlatformPoolGroup = PlatformPoolGroup.Other,
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now
-        };
+        var firstSortOrder = highestSortOrder is null ? 0 : highestSortOrder.Value + 1;
+        var options = names.Select((name, index) => new CatalogOption
+            {
+                Id = Guid.NewGuid(),
+                Category = category,
+                NameEnglish = name,
+                NormalizedName = NormalizeName(name),
+                ParentOptionId = parentOptionId,
+                SortOrder = firstSortOrder + index,
+                IsActive = true,
+                IsBuiltIn = false,
+                PlatformPoolGroup = PlatformPoolGroup.Other,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            })
+            .ToArray();
 
-        context.CatalogOptions.Add(option);
+        context.CatalogOptions.AddRange(options);
         await context.SaveChangesAsync(cancellationToken);
-        return Clone(option);
+        await transaction.CommitAsync(cancellationToken);
+        return options.Select(Clone).ToArray();
     }
 
     public async Task<CatalogOption> SetOptionActiveAsync(

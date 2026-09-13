@@ -14,6 +14,12 @@ public interface ICatalogRepository
         Guid? parentOptionId = null,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<CatalogOption>> AddOptionsAsync(
+        CatalogCategory category,
+        IReadOnlyCollection<string> namesEnglish,
+        Guid? parentOptionId = null,
+        CancellationToken cancellationToken = default);
+
     Task<CatalogOption> SetOptionActiveAsync(
         Guid id,
         bool isActive,
