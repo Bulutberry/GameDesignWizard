@@ -7,7 +7,12 @@
         <SolidColorBrush x:Key="MutedInkBrush" Color="#697086" />
         <SolidColorBrush x:Key="CanvasBrush" Color="#F4F5FA" />
         <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="SidebarBrush" Color="#141827" />
+        <SolidColorBrush x:Key="SidebarBrush" Color="#202B40" />
+        <SolidColorBrush x:Key="SidebarTextBrush" Color="#F4F7FC" />
+        <SolidColorBrush x:Key="SidebarMutedTextBrush" Color="#BBC9DE" />
+        <SolidColorBrush x:Key="SidebarHoverBrush" Color="#354661" />
+        <SolidColorBrush x:Key="SidebarSelectedBrush" Color="#485BA0" />
+        <SolidColorBrush x:Key="SidebarFocusBrush" Color="#C9D6FF" />
         <SolidColorBrush x:Key="AccentBrush" Color="#6C5CE7" />
         <SolidColorBrush x:Key="AccentSoftBrush" Color="#ECE9FF" />
         <SolidColorBrush x:Key="BorderBrush" Color="#E2E4EC" />
@@ -52,30 +57,44 @@
             <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
         </Style>
 
-        <Style x:Key="NavButtonStyle" TargetType="Button">
+        <Style x:Key="NavButtonStyle" TargetType="RadioButton">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#AEB5CB" />
+            <Setter Property="Foreground" Value="{StaticResource SidebarTextBrush}" />
             <Setter Property="FontFamily" Value="Segoe UI Semibold" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="15" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Padding" Value="18,13" />
             <Setter Property="Margin" Value="0,3" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="GroupName" Value="PrimaryNavigation" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="Button">
+                    <ControlTemplate TargetType="RadioButton">
                         <Border x:Name="NavBorder"
                                 Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="2"
                                 CornerRadius="9"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="Center" />
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       TextWrapping="Wrap"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                       VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="NavBorder" Property="Background" Value="#23283B" />
-                                <Setter Property="Foreground" Value="White" />
+                                <Setter TargetName="NavBorder" Property="Background" Value="{StaticResource SidebarHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{StaticResource SidebarSelectedBrush}" />
+                                <Setter TargetName="NavBorder" Property="BorderBrush" Value="{StaticResource SidebarFocusBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="NavBorder" Property="BorderBrush" Value="White" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

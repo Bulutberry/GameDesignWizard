@@ -81,6 +81,14 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public Visibility SettingsVisibility => CurrentPage == AppPage.Settings ? Visibility.Visible : Visibility.Collapsed;
 
+    public bool IsHomeSelected => CurrentPage == AppPage.Home;
+
+    public bool IsWizardSelected => CurrentPage == AppPage.Wizard;
+
+    public bool IsPoolSelected => CurrentPage == AppPage.Pool;
+
+    public bool IsSettingsSelected => CurrentPage == AppPage.Settings;
+
     private AppPage CurrentPage
     {
         get => _currentPage;
@@ -95,6 +103,10 @@ public sealed class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(WizardVisibility));
             OnPropertyChanged(nameof(PoolVisibility));
             OnPropertyChanged(nameof(SettingsVisibility));
+            OnPropertyChanged(nameof(IsHomeSelected));
+            OnPropertyChanged(nameof(IsWizardSelected));
+            OnPropertyChanged(nameof(IsPoolSelected));
+            OnPropertyChanged(nameof(IsSettingsSelected));
         }
     }
 

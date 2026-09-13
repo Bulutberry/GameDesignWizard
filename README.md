@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.0.1 validates the visual direction and the central dynamic catalog behavior:
+Prototype 0.0.2 improves sidebar readability with brighter labels, larger supporting text, and a visible current-page indicator. It validates the visual direction and the central dynamic catalog behavior:
 
 - Home navigation
 - First wizard step with data-bound platform buttons
