@@ -50,7 +50,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.1.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.2.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -232,21 +232,39 @@
 
                 <StackPanel>
                     <TextBlock Text="SETTINGS / CATALOGS" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="11" />
-                    <TextBlock Text="Manage platforms" FontFamily="Segoe UI Semibold" FontSize="32" Margin="0,8,0,0" />
+                    <ComboBox ItemsSource="{Binding CatalogCategories}"
+                              SelectedItem="{Binding SelectedCatalogCategory}"
+                              DisplayMemberPath="DisplayName"
+                              Width="260" Height="38" HorizontalAlignment="Left" Margin="0,12,0,0"
+                              Padding="10,4" FontSize="14" />
+                    <TextBlock Text="{Binding CatalogHeading}" FontFamily="Segoe UI Semibold" FontSize="32" Margin="0,12,0,0" />
                     <TextBlock Text="Changes appear immediately in the idea wizard. Archived options remain available to saved ideas."
                                Foreground="{StaticResource MutedInkBrush}" FontSize="14" Margin="0,8,0,0" />
                 </StackPanel>
 
                 <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         CornerRadius="13" Padding="20" Margin="0,30,0,18">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox Style="{StaticResource InputStyle}" Text="{Binding NewPlatformName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Enter a platform name" />
-                        <Button Grid.Column="1" Content="Add Platform" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding AddPlatformCommand}" Margin="12,0,0,0" />
-                    </Grid>
+                    <StackPanel>
+                        <StackPanel Visibility="{Binding SubgenreParentVisibility}" Margin="0,0,0,14">
+                            <TextBlock Text="Parent genre" FontWeight="SemiBold" FontSize="12" Margin="2,0,0,6" />
+                            <ComboBox ItemsSource="{Binding GenreChoices}"
+                                      SelectedItem="{Binding SelectedParentGenre}"
+                                      DisplayMemberPath="Name"
+                                      Height="38" Padding="10,4" FontSize="14" />
+                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Style="{StaticResource InputStyle}"
+                                     Text="{Binding NewCatalogOptionName, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="{Binding CatalogInputHint}" />
+                            <Button Grid.Column="1" Content="{Binding AddCatalogButtonLabel}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Command="{Binding AddCatalogOptionCommand}" Margin="12,0,0,0" />
+                        </Grid>
+                    </StackPanel>
                 </Border>
 
                 <Grid Grid.Row="2">
@@ -256,7 +274,7 @@
                     </Grid.RowDefinitions>
                     <TextBlock Text="{Binding SettingsMessage}" Foreground="{StaticResource MutedInkBrush}" FontSize="12" Margin="3,0,0,10" />
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding Platforms}">
+                        <ItemsControl ItemsSource="{Binding CatalogOptions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="17,13" Margin="0,0,0,9">
@@ -278,7 +296,7 @@
                                                 <TextBlock Text="{Binding StateLabel}" Foreground="#247058" FontWeight="SemiBold" FontSize="11" />
                                             </Border>
                                             <Button Grid.Column="3" Content="{Binding ToggleLabel}" Style="{StaticResource SecondaryButtonStyle}"
-                                                    Command="{Binding DataContext.TogglePlatformCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    Command="{Binding DataContext.ToggleCatalogOptionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}" Padding="14,8" />
                                         </Grid>
                                     </Border>

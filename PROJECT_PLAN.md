@@ -1,12 +1,12 @@
 # GameDesignWizard Project Plan
 
-Version 2.0 | September 13, 2026 | Status: proposed implementation baseline
+Version 2.0 | September 13, 2026 | Status: implementation in progress
 
 GameDesignWizard will be an English-first Windows desktop application for developing game ideas through a six-step wizard, organizing them in a searchable idea pool, and producing editable GDDs and polished PDF documents. Users will be able to customize every selection catalog and exchange catalogs through Excel files. An optional small local language model will help draft and improve GDD text.
 
 The selected foundation is C# with .NET 10, WPF, SQLite, and an optional LLamaSharp inference worker. Excel is the bulk editing format; SQLite is the application database; versioned JSON is the repository format for default catalogs. PDF layout remains deterministic application code.
 
-This plan incorporates the supplied `Proje-detaylari.docx` and the latest requirements in the conversation. The latest requirements take precedence: Windows only, English throughout the initial product and source code, all listed catalogs editable, and custom platforms routed to Other. It supersedes the earlier `GameDesignWizard-Proje-Plani.md`. Implementation, model benchmarking, and release packaging have not yet been performed.
+This plan incorporates the supplied `Proje-detaylari.docx` and the latest requirements in the conversation. The latest requirements take precedence: Windows only, English throughout the initial product and source code, all listed catalogs editable, and custom platforms routed to Other. It supersedes the earlier `GameDesignWizard-Proje-Plani.md`. Application implementation is in progress; model benchmarking and release packaging have not yet been performed.
 
 ## 1 Product boundaries and decisions
 

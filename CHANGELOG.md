@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Add a path-independent Windows launcher for local development.
+- Expand Settings to all nine editable catalog categories.
+- Add an initial English fixture for genres, subgenres, topics, mechanics, features, art styles, development durations, and team sizes.
+- Require a parent genre for every new subgenre.
+- Archive active child subgenres when their parent genre is archived.
+
 ## 0.1.0
 
 - Persist the platform catalog locally with SQLite.

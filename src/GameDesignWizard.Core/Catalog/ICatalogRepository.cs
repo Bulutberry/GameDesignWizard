@@ -4,9 +4,18 @@ public interface ICatalogRepository
 {
     Task InitializeAsync(CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<CatalogOption>> GetPlatformsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CatalogOption>> GetOptionsAsync(
+        CatalogCategory category,
+        CancellationToken cancellationToken = default);
 
-    Task<CatalogOption> AddPlatformAsync(string nameEnglish, CancellationToken cancellationToken = default);
+    Task<CatalogOption> AddOptionAsync(
+        CatalogCategory category,
+        string nameEnglish,
+        Guid? parentOptionId = null,
+        CancellationToken cancellationToken = default);
 
-    Task<CatalogOption> SetPlatformActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default);
+    Task<CatalogOption> SetOptionActiveAsync(
+        Guid id,
+        bool isActive,
+        CancellationToken cancellationToken = default);
 }
