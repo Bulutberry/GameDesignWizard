@@ -169,12 +169,7 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
             CreateBuiltIn(CatalogCategory.Subgenre, "Life Simulation", 8, simulationId),
             CreateBuiltIn(CatalogCategory.Subgenre, "Management Simulation", 9, simulationId),
 
-            CreateBuiltIn(CatalogCategory.Topic, "Space", 0),
-            CreateBuiltIn(CatalogCategory.Topic, "Zombies", 1),
-            CreateBuiltIn(CatalogCategory.Topic, "World War II", 2),
-            CreateBuiltIn(CatalogCategory.Topic, "Dogs", 3),
-            CreateBuiltIn(CatalogCategory.Topic, "Fantasy", 4),
-            CreateBuiltIn(CatalogCategory.Topic, "Cyberpunk", 5),
+            .. CreateBuiltInTopics(),
 
             CreateBuiltIn(CatalogCategory.Mechanic, "Exploration", 0),
             CreateBuiltIn(CatalogCategory.Mechanic, "Combat", 1),
@@ -215,6 +210,26 @@ public sealed class SqliteCatalogRepository(AppDbContextFactory contextFactory) 
         int sortOrder,
         PlatformPoolGroup poolGroup) =>
         CreateBuiltIn(CatalogCategory.Platform, name, sortOrder, null, Guid.Parse(id), poolGroup);
+
+    private static IEnumerable<CatalogOption> CreateBuiltInTopics()
+    {
+        const string resourceName = "GameDesignWizard.Infrastructure.Catalog.Defaults.topics.en.txt";
+        using var stream = typeof(SqliteCatalogRepository).Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"The embedded default topic catalog '{resourceName}' is missing.");
+        using var reader = new StreamReader(stream, Encoding.UTF8, true);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var sortOrder = 0;
+        while (reader.ReadLine() is { } line)
+        {
+            var name = line.Trim();
+            if (name.Length == 0 || name.StartsWith('#') || !names.Add(name))
+            {
+                continue;
+            }
+
+            yield return CreateBuiltIn(CatalogCategory.Topic, name, sortOrder++);
+        }
+    }
 
     private static CatalogOption CreateBuiltIn(
         CatalogCategory category,

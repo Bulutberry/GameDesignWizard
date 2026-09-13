@@ -8,12 +8,19 @@ namespace GameDesignWizard.App.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly ICatalogRepository? _catalogRepository;
+    private readonly List<CatalogOptionViewModel> _allSubgenres = [];
+    private readonly List<CatalogOptionViewModel> _allTopics = [];
     private AppPage _currentPage = AppPage.Home;
     private CatalogCategoryItemViewModel _selectedCatalogCategory;
     private CatalogOptionViewModel? _selectedParentGenre;
     private string _newCatalogOptionName = string.Empty;
     private string _selectedPlatformName = "None";
     private string _settingsMessage;
+    private string _topicSearch = string.Empty;
+    private string _wizardMessage = "Select a platform or leave the step empty.";
+    private int _wizardStep = 1;
+    private CatalogOptionViewModel? _selectedGenre;
+    private CatalogOptionViewModel? _selectedSubgenre;
     private bool _isInitialized;
 
     public MainWindowViewModel()
@@ -41,6 +48,10 @@ public sealed class MainWindowViewModel : ObservableObject
         ActivePlatforms = [];
         CatalogOptions = [];
         GenreChoices = [];
+        Genres = [];
+        AvailableSubgenres = [];
+        AvailableTopics = [];
+        SelectedTopics = [];
         _settingsMessage = catalogRepository is null
             ? "Catalog changes appear immediately in the wizard."
             : "Catalog changes are saved automatically on this device.";
@@ -57,8 +68,12 @@ public sealed class MainWindowViewModel : ObservableObject
         AddCatalogOptionCommand = new AsyncRelayCommand(_ => AddCatalogOptionAsync());
         ToggleCatalogOptionCommand = new AsyncRelayCommand(ToggleCatalogOptionAsync);
         SelectPlatformCommand = new RelayCommand(SelectPlatform);
-        ContinuePrototypeCommand = new RelayCommand(_ =>
-            SettingsMessage = "The remaining wizard steps will be added after this catalog prototype is approved.");
+        SelectGenreCommand = new RelayCommand(SelectGenre);
+        SelectSubgenreCommand = new RelayCommand(SelectSubgenre);
+        AddTopicCommand = new RelayCommand(AddTopic);
+        RemoveTopicCommand = new RelayCommand(RemoveTopic);
+        WizardNextCommand = new RelayCommand(_ => MoveWizardNext());
+        WizardPreviousCommand = new RelayCommand(_ => MoveWizardPrevious());
     }
 
     public ObservableCollection<CatalogCategoryItemViewModel> CatalogCategories { get; }
@@ -70,6 +85,14 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<CatalogOptionViewModel> CatalogOptions { get; }
 
     public ObservableCollection<CatalogOptionViewModel> GenreChoices { get; }
+
+    public ObservableCollection<CatalogOptionViewModel> Genres { get; }
+
+    public ObservableCollection<CatalogOptionViewModel> AvailableSubgenres { get; }
+
+    public ObservableCollection<CatalogOptionViewModel> AvailableTopics { get; }
+
+    public ObservableCollection<CatalogOptionViewModel> SelectedTopics { get; }
 
     public ICommand NavigateHomeCommand { get; }
 
@@ -85,7 +108,17 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ICommand SelectPlatformCommand { get; }
 
-    public ICommand ContinuePrototypeCommand { get; }
+    public ICommand SelectGenreCommand { get; }
+
+    public ICommand SelectSubgenreCommand { get; }
+
+    public ICommand AddTopicCommand { get; }
+
+    public ICommand RemoveTopicCommand { get; }
+
+    public ICommand WizardNextCommand { get; }
+
+    public ICommand WizardPreviousCommand { get; }
 
     public CatalogCategoryItemViewModel SelectedCatalogCategory
     {
@@ -133,6 +166,70 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _settingsMessage, value);
     }
 
+    public string TopicSearch
+    {
+        get => _topicSearch;
+        set
+        {
+            if (SetProperty(ref _topicSearch, value))
+            {
+                RefreshAvailableTopics();
+            }
+        }
+    }
+
+    public string WizardMessage
+    {
+        get => _wizardMessage;
+        private set => SetProperty(ref _wizardMessage, value);
+    }
+
+    public CatalogOptionViewModel? SelectedGenre
+    {
+        get => _selectedGenre;
+        private set
+        {
+            if (SetProperty(ref _selectedGenre, value))
+            {
+                OnPropertyChanged(nameof(WizardSelectionSummary));
+            }
+        }
+    }
+
+    public CatalogOptionViewModel? SelectedSubgenre
+    {
+        get => _selectedSubgenre;
+        private set
+        {
+            if (SetProperty(ref _selectedSubgenre, value))
+            {
+                OnPropertyChanged(nameof(WizardSelectionSummary));
+            }
+        }
+    }
+
+    public string WizardTitle => _wizardStep == 1 ? "Choose a target platform" : "Choose genre, subgenre, and topics";
+
+    public string WizardInstructions => _wizardStep == 1
+        ? "Select one option or leave this step empty and continue."
+        : "Choose one genre, an optional related subgenre, and any number of topics.";
+
+    public string WizardStepLabel => $"STEP {_wizardStep} OF 6";
+
+    public string WizardNextLabel => _wizardStep == 1 ? "Continue" : "Continue to Step 3";
+
+    public string WizardPreviousLabel => _wizardStep == 1 ? "Back to Home" : "Previous";
+
+    public string WizardSelectionSummary => _wizardStep == 1
+        ? $"Selected platform: {SelectedPlatformName}"
+        : $"Genre: {SelectedGenre?.Name ?? "None"} · Subgenre: {SelectedSubgenre?.Name ?? "None"} · Topics: {SelectedTopics.Count}";
+
+    public Visibility WizardStepOneVisibility => _wizardStep == 1 ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility WizardStepTwoVisibility => _wizardStep == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+    public string WizardSecondProgressColor => _wizardStep >= 2 ? "#6C5CE7" : "#E1E3EC";
+
     public string CatalogHeading => $"Manage {SelectedCatalogCategory.DisplayName.ToLowerInvariant()}";
 
     public string AddCatalogButtonLabel => $"Add {SelectedCatalogCategory.SingularName}";
@@ -168,6 +265,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         await _catalogRepository.InitializeAsync(cancellationToken);
         await LoadPlatformsAsync(cancellationToken);
+        await LoadWizardCatalogsAsync(cancellationToken);
         _isInitialized = true;
         await LoadSelectedCatalogAsync(cancellationToken);
     }
@@ -253,6 +351,52 @@ public sealed class MainWindowViewModel : ObservableObject
         RebuildActivePlatforms();
     }
 
+    private async Task LoadWizardCatalogsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_catalogRepository is null)
+        {
+            return;
+        }
+
+        var genres = await _catalogRepository.GetOptionsAsync(CatalogCategory.Genre, cancellationToken);
+        var subgenres = await _catalogRepository.GetOptionsAsync(CatalogCategory.Subgenre, cancellationToken);
+        var topics = await _catalogRepository.GetOptionsAsync(CatalogCategory.Topic, cancellationToken);
+
+        Genres.Clear();
+        foreach (var genre in genres.Where(option => option.IsActive))
+        {
+            Genres.Add(ToViewModel(genre));
+        }
+
+        _allSubgenres.Clear();
+        _allSubgenres.AddRange(subgenres.Where(option => option.IsActive).Select(option => ToViewModel(option)));
+        _allTopics.Clear();
+        _allTopics.AddRange(topics.Where(option => option.IsActive).Select(option => ToViewModel(option)));
+
+        if (SelectedGenre is not null)
+        {
+            var currentGenre = Genres.SingleOrDefault(option => option.Id == SelectedGenre.Id);
+            SelectedGenre = currentGenre;
+            if (currentGenre is not null)
+            {
+                currentGenre.IsSelected = true;
+            }
+        }
+
+        if (SelectedSubgenre is not null)
+        {
+            var currentSubgenre = _allSubgenres.SingleOrDefault(option => option.Id == SelectedSubgenre.Id);
+            SelectedSubgenre = currentSubgenre;
+            if (currentSubgenre is not null)
+            {
+                currentSubgenre.IsSelected = true;
+            }
+        }
+
+        RefreshAvailableSubgenres();
+        RefreshAvailableTopics();
+    }
+
     private async Task AddCatalogOptionAsync()
     {
         try
@@ -288,6 +432,12 @@ public sealed class MainWindowViewModel : ObservableObject
                     IsBuiltIn = false
                 }));
                 RebuildActivePlatforms();
+            }
+
+            else if (_catalogRepository is not null
+                && category is CatalogCategory.Genre or CatalogCategory.Subgenre or CatalogCategory.Topic)
+            {
+                await LoadWizardCatalogsAsync();
             }
 
             NewCatalogOptionName = string.Empty;
@@ -330,6 +480,11 @@ public sealed class MainWindowViewModel : ObservableObject
                     SelectedPlatformName = "None";
                 }
             }
+            else if (_catalogRepository is not null
+                && option.Category is CatalogCategory.Genre or CatalogCategory.Subgenre or CatalogCategory.Topic)
+            {
+                await LoadWizardCatalogsAsync();
+            }
 
             var dependentNote = option.Category == CatalogCategory.Genre && !newState
                 ? " Its active subgenres were archived as well."
@@ -352,8 +507,153 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         if (parameter is CatalogOptionViewModel platform)
         {
+            foreach (var option in Platforms)
+            {
+                option.IsSelected = option.Id == platform.Id;
+            }
+
             SelectedPlatformName = platform.Name;
+            OnPropertyChanged(nameof(WizardSelectionSummary));
         }
+    }
+
+    private void SelectGenre(object? parameter)
+    {
+        if (parameter is not CatalogOptionViewModel genre)
+        {
+            return;
+        }
+
+        foreach (var option in Genres)
+        {
+            option.IsSelected = option.Id == genre.Id;
+        }
+
+        SelectedGenre = genre;
+        if (SelectedSubgenre is not null)
+        {
+            SelectedSubgenre.IsSelected = false;
+            SelectedSubgenre = null;
+            WizardMessage = "The previous subgenre was cleared because the genre changed.";
+        }
+        else
+        {
+            WizardMessage = $"{genre.Name} selected. Choose a related subgenre or skip it.";
+        }
+
+        RefreshAvailableSubgenres();
+    }
+
+    private void SelectSubgenre(object? parameter)
+    {
+        if (parameter is not CatalogOptionViewModel subgenre)
+        {
+            return;
+        }
+
+        foreach (var option in AvailableSubgenres)
+        {
+            option.IsSelected = option.Id == subgenre.Id;
+        }
+
+        SelectedSubgenre = subgenre;
+        WizardMessage = $"{subgenre.Name} selected.";
+    }
+
+    private void AddTopic(object? parameter)
+    {
+        if (parameter is not CatalogOptionViewModel topic
+            || SelectedTopics.Any(option => option.Id == topic.Id))
+        {
+            return;
+        }
+
+        topic.IsSelected = true;
+        SelectedTopics.Add(topic);
+        RefreshAvailableTopics();
+        OnPropertyChanged(nameof(WizardSelectionSummary));
+        WizardMessage = $"{topic.Name} added. {SelectedTopics.Count} topic(s) selected.";
+    }
+
+    private void RemoveTopic(object? parameter)
+    {
+        if (parameter is not CatalogOptionViewModel topic)
+        {
+            return;
+        }
+
+        topic.IsSelected = false;
+        SelectedTopics.Remove(topic);
+        RefreshAvailableTopics();
+        OnPropertyChanged(nameof(WizardSelectionSummary));
+        WizardMessage = $"{topic.Name} removed. {SelectedTopics.Count} topic(s) selected.";
+    }
+
+    private void RefreshAvailableSubgenres()
+    {
+        AvailableSubgenres.Clear();
+        if (SelectedGenre is null)
+        {
+            return;
+        }
+
+        foreach (var subgenre in _allSubgenres.Where(option => option.ParentOptionId == SelectedGenre.Id))
+        {
+            subgenre.IsSelected = subgenre.Id == SelectedSubgenre?.Id;
+            AvailableSubgenres.Add(subgenre);
+        }
+    }
+
+    private void RefreshAvailableTopics()
+    {
+        AvailableTopics.Clear();
+        var selectedIds = SelectedTopics.Select(option => option.Id).ToHashSet();
+        foreach (var topic in _allTopics.Where(option =>
+                     !selectedIds.Contains(option.Id)
+                     && (TopicSearch.Length == 0
+                         || option.Name.Contains(TopicSearch, StringComparison.OrdinalIgnoreCase))))
+        {
+            AvailableTopics.Add(topic);
+        }
+    }
+
+    private void MoveWizardNext()
+    {
+        if (_wizardStep == 1)
+        {
+            _wizardStep = 2;
+            WizardMessage = "Choose one genre, an optional subgenre, and any number of topics.";
+            NotifyWizardStepChanged();
+            return;
+        }
+
+        WizardMessage = "Step 3 will be added after this wizard prototype is approved.";
+    }
+
+    private void MoveWizardPrevious()
+    {
+        if (_wizardStep == 1)
+        {
+            CurrentPage = AppPage.Home;
+            return;
+        }
+
+        _wizardStep = 1;
+        WizardMessage = "Select a platform or leave the step empty.";
+        NotifyWizardStepChanged();
+    }
+
+    private void NotifyWizardStepChanged()
+    {
+        OnPropertyChanged(nameof(WizardTitle));
+        OnPropertyChanged(nameof(WizardInstructions));
+        OnPropertyChanged(nameof(WizardStepLabel));
+        OnPropertyChanged(nameof(WizardNextLabel));
+        OnPropertyChanged(nameof(WizardPreviousLabel));
+        OnPropertyChanged(nameof(WizardSelectionSummary));
+        OnPropertyChanged(nameof(WizardStepOneVisibility));
+        OnPropertyChanged(nameof(WizardStepTwoVisibility));
+        OnPropertyChanged(nameof(WizardSecondProgressColor));
     }
 
     private void AddPreviewPlatforms()

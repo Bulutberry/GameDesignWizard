@@ -5,6 +5,7 @@ namespace GameDesignWizard.App.ViewModels;
 public sealed class CatalogOptionViewModel : ObservableObject
 {
     private bool _isActive;
+    private bool _isSelected;
 
     public CatalogOptionViewModel(
         Guid id,
@@ -77,4 +78,10 @@ public sealed class CatalogOptionViewModel : ObservableObject
     public string StateLabel => IsActive ? "ACTIVE" : "ARCHIVED";
 
     public string ToggleLabel => IsActive ? "Archive" : "Restore";
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetProperty(ref _isSelected, value);
+    }
 }

@@ -1,0 +1,7 @@
+# English default topics. Add one topic per line.
+Space
+Zombies
+World War II
+Dogs
+Fantasy
+Cyberpunk

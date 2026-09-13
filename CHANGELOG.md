@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Add wizard step 2 for genre, dependent subgenre, and multi-topic selection.
+- Add search without losing existing topic selections.
+- Virtualize topic lists for catalogs containing hundreds of entries.
+- Show a visible selected state for platform, genre, and subgenre buttons.
+- Load built-in English topics from a one-item-per-line source file.
+- Merge newly shipped default topics into existing local catalogs on startup.
+
 ## 0.2.0
 
 - Add a path-independent Windows launcher for local development.
