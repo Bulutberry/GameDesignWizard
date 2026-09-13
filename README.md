@@ -4,16 +4,16 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.0.2 improves sidebar readability with brighter labels, larger supporting text, and a visible current-page indicator. It validates the visual direction and the central dynamic catalog behavior:
+Prototype 0.1.0 validates the visual direction and the first persistent dynamic catalog behavior:
 
 - Home navigation
 - First wizard step with data-bound platform buttons
 - Fixed PC, Mobile, and Other idea-pool groups
 - Platform management in Settings
-- Immediate add, archive, and restore behavior
+- SQLite-backed add, archive, and restore behavior that survives app restarts
 - Custom-platform routing explained as Other
 
-The prototype keeps catalog changes in memory. SQLite persistence begins after the interaction and visual direction are approved.
+Catalog data is stored locally in `%LOCALAPPDATA%\GameDesignWizard\game-design-wizard.db`.
 
 ## Run locally
 

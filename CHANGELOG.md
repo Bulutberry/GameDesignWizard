@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0
+
+- Persist the platform catalog locally with SQLite.
+- Seed built-in platforms with stable identifiers.
+- Preserve custom platforms and archived states across app restarts.
+- Route every custom platform to the fixed Other idea-pool group.
+- Split domain contracts and data access into Core and Infrastructure projects.
+
 ## 0.0.2
 
 - Fix navigation labels inheriting the dark body-text color.

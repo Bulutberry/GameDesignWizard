@@ -4,11 +4,15 @@ public sealed class PlatformOptionViewModel : ObservableObject
 {
     private bool _isActive = true;
 
-    public PlatformOptionViewModel(string name, bool isBuiltIn)
+    public PlatformOptionViewModel(Guid id, string name, bool isBuiltIn, bool isActive = true)
     {
+        Id = id;
         Name = name;
         IsBuiltIn = isBuiltIn;
+        _isActive = isActive;
     }
+
+    public Guid Id { get; }
 
     public string Name { get; }
 

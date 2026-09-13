@@ -6,7 +6,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.0.2</Version>
+    <Version>0.1.0</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../GameDesignWizard.Core/GameDesignWizard.Core.csproj" />
+    <ProjectReference Include="../GameDesignWizard.Infrastructure/GameDesignWizard.Infrastructure.csproj" />
+  </ItemGroup>
 
 </Project>

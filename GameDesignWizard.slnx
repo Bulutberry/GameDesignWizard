@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/GameDesignWizard.App/GameDesignWizard.App.csproj" />
+    <Project Path="src/GameDesignWizard.Core/GameDesignWizard.Core.csproj" />
+    <Project Path="src/GameDesignWizard.Infrastructure/GameDesignWizard.Infrastructure.csproj" />
   </Folder>
 </Solution>
