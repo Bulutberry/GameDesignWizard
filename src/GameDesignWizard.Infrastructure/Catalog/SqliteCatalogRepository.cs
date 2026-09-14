@@ -203,6 +203,83 @@ public sealed class SqliteCatalogRepository : ICatalogRepository
         return Clone(option);
     }
 
+    public async Task<CatalogOption> RenameOptionAsync(
+        Guid id,
+        string nameEnglish,
+        CancellationToken cancellationToken = default)
+    {
+        var name = CleanName(nameEnglish);
+        var normalizedName = NormalizeName(name);
+        await using var context = _contextFactory.CreateDbContext();
+        var option = await context.CatalogOptions.SingleOrDefaultAsync(
+            candidate => candidate.Id == id,
+            cancellationToken) ?? throw new InvalidOperationException("The catalog option no longer exists.");
+
+        var nameExists = await context.CatalogOptions.AnyAsync(
+            candidate => candidate.Id != id
+                && candidate.Category == option.Category
+                && candidate.NormalizedName == normalizedName,
+            cancellationToken);
+        if (nameExists)
+        {
+            throw new InvalidOperationException($"{name} already exists in the {GetCategoryLabel(option.Category)} catalog.");
+        }
+
+        option.NameEnglish = name;
+        option.NormalizedName = normalizedName;
+        option.UpdatedAtUtc = DateTime.UtcNow;
+        await context.SaveChangesAsync(cancellationToken);
+        return Clone(option);
+    }
+
+    public async Task<CatalogOption> MoveOptionAsync(
+        Guid id,
+        int offset,
+        CancellationToken cancellationToken = default)
+    {
+        if (offset is not (-1 or 1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset), "The move offset must be -1 or 1.");
+        }
+
+        await using var context = _contextFactory.CreateDbContext();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var option = await context.CatalogOptions.SingleOrDefaultAsync(
+            candidate => candidate.Id == id,
+            cancellationToken) ?? throw new InvalidOperationException("The catalog option no longer exists.");
+        var categoryOptions = await context.CatalogOptions
+            .Where(candidate => candidate.Category == option.Category)
+            .OrderBy(candidate => candidate.SortOrder)
+            .ThenBy(candidate => candidate.NameEnglish)
+            .ToListAsync(cancellationToken);
+        var siblings = option.Category == CatalogCategory.Subgenre
+            ? categoryOptions.Where(candidate => candidate.ParentOptionId == option.ParentOptionId).ToList()
+            : categoryOptions;
+        var currentIndex = siblings.FindIndex(candidate => candidate.Id == id);
+        var targetIndex = currentIndex + offset;
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= siblings.Count)
+        {
+            return Clone(option);
+        }
+
+        if (categoryOptions.Select(candidate => candidate.SortOrder).Distinct().Count() != categoryOptions.Count)
+        {
+            for (var index = 0; index < categoryOptions.Count; index++)
+            {
+                categoryOptions[index].SortOrder = index;
+            }
+        }
+
+        var target = siblings[targetIndex];
+        (option.SortOrder, target.SortOrder) = (target.SortOrder, option.SortOrder);
+        var now = DateTime.UtcNow;
+        option.UpdatedAtUtc = now;
+        target.UpdatedAtUtc = now;
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return Clone(option);
+    }
+
     private static CatalogOption Clone(CatalogOption option) => new()
     {
         Id = option.Id,

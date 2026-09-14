@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.14.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.15.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -705,6 +705,8 @@
                                   Padding="10,4" FontSize="14" />
                         <Button Content="Import TXT / XLSX" Style="{StaticResource SecondaryButtonStyle}"
                                 Click="ImportCatalog_Click" Padding="16,8" Margin="12,0,0,0" />
+                        <Button Content="Export TXT / XLSX" Style="{StaticResource SecondaryButtonStyle}"
+                                Click="ExportCatalog_Click" Padding="16,8" Margin="8,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="{Binding CatalogHeading}" FontFamily="Segoe UI Semibold" FontSize="32" Margin="0,12,0,0" />
                     <TextBlock Text="Changes appear immediately in the idea wizard. Archived options remain available to saved ideas."
@@ -721,6 +723,8 @@
                                       DisplayMemberPath="Name"
                                       Height="38" Padding="10,4" FontSize="14" />
                         </StackPanel>
+                        <TextBlock Text="{Binding CatalogExportDescription}" Foreground="{StaticResource MutedInkBrush}"
+                                   FontSize="11" TextWrapping="Wrap" Margin="2,0,0,12" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -752,19 +756,39 @@
                                                 <ColumnDefinition Width="48" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="76" />
+                                                <ColumnDefinition Width="116" />
                                             </Grid.ColumnDefinitions>
                                             <Border Width="34" Height="34" Background="{StaticResource AccentSoftBrush}" CornerRadius="17">
                                                 <TextBlock Text="{Binding Badge}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                                                <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource InputStyle}" Height="34" Padding="9,4"
+                                                         AutomationProperties.Name="Catalog option name" />
                                                 <TextBlock Text="{Binding OriginLabel}" Foreground="{StaticResource MutedInkBrush}" FontSize="11" />
                                             </StackPanel>
                                             <Border Grid.Column="2" Background="#EFF7F3" CornerRadius="10" Padding="10,4" Margin="0,0,16,0" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding StateLabel}" Foreground="#247058" FontWeight="SemiBold" FontSize="11" />
                                             </Border>
-                                            <Button Grid.Column="3" Content="{Binding ToggleLabel}" Style="{StaticResource SecondaryButtonStyle}"
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                <Button Content="↑" ToolTip="Move up" AutomationProperties.Name="Move catalog option up"
+                                                        Style="{StaticResource SecondaryButtonStyle}" Padding="11,7" Margin="0,0,4,0"
+                                                        IsEnabled="{Binding CanMoveUp}"
+                                                        Command="{Binding DataContext.MoveCatalogOptionUpCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Content="↓" ToolTip="Move down" AutomationProperties.Name="Move catalog option down"
+                                                        Style="{StaticResource SecondaryButtonStyle}" Padding="11,7"
+                                                        IsEnabled="{Binding CanMoveDown}"
+                                                        Command="{Binding DataContext.MoveCatalogOptionDownCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="4" Content="Save" ToolTip="Save name" AutomationProperties.Name="Save catalog option name"
+                                                    Style="{StaticResource PrimaryButtonStyle}"
+                                                    Command="{Binding DataContext.RenameCatalogOptionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" Padding="11,7" Margin="0,0,8,0" />
+                                            <Button Grid.Column="5" Content="{Binding ToggleLabel}" Style="{StaticResource SecondaryButtonStyle}"
                                                     Command="{Binding DataContext.ToggleCatalogOptionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}" Padding="14,8" />
                                         </Grid>

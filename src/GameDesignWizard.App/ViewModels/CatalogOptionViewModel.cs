@@ -4,8 +4,12 @@ namespace GameDesignWizard.App.ViewModels;
 
 public sealed class CatalogOptionViewModel : ObservableObject
 {
+    private string _name;
+    private string _editName;
     private bool _isActive;
     private bool _isSelected;
+    private bool _canMoveUp;
+    private bool _canMoveDown;
 
     public CatalogOptionViewModel(
         Guid id,
@@ -19,7 +23,8 @@ public sealed class CatalogOptionViewModel : ObservableObject
     {
         Id = id;
         Category = category;
-        Name = name;
+        _name = name;
+        _editName = name;
         IsBuiltIn = isBuiltIn;
         _isActive = isActive;
         ParentOptionId = parentOptionId;
@@ -31,7 +36,13 @@ public sealed class CatalogOptionViewModel : ObservableObject
 
     public CatalogCategory Category { get; }
 
-    public string Name { get; }
+    public string Name => _name;
+
+    public string EditName
+    {
+        get => _editName;
+        set => SetProperty(ref _editName, value);
+    }
 
     public bool IsBuiltIn { get; }
 
@@ -90,5 +101,26 @@ public sealed class CatalogOptionViewModel : ObservableObject
     {
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
+    }
+
+    public bool CanMoveUp
+    {
+        get => _canMoveUp;
+        set => SetProperty(ref _canMoveUp, value);
+    }
+
+    public bool CanMoveDown
+    {
+        get => _canMoveDown;
+        set => SetProperty(ref _canMoveDown, value);
+    }
+
+    public void AcceptName(string name)
+    {
+        _name = name;
+        EditName = name;
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(Badge));
+        OnPropertyChanged(nameof(SelectionName));
     }
 }

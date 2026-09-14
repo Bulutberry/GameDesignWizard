@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.14.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, individual GDD PDF export, complete and filtered idea-pool XLSX export, bulk catalog import, and distributable defaults:
+Prototype 0.15.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, individual GDD PDF export, complete and filtered idea-pool XLSX export, bulk catalog exchange, and distributable defaults:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -27,9 +27,11 @@ Prototype 0.14.0 validates the visual direction, persistent dynamic catalogs, th
 - Complete XLSX export across the PC, Mobile, and Other pools, including lossless selection, GDD, reference, and media detail sheets
 - Fixed PC, Mobile, and Other idea-pool groups
 - Settings management for platforms, genres, subgenres, topics, mechanics, features, art styles, development durations, and team sizes
+- Inline catalog renaming and persistent ordering while stable identities, subgenre parents, and platform pool routing remain intact
 - SQLite-backed add, archive, and restore behavior that survives app restarts
 - Parent-genre selection for subgenres and dependent archival when a genre is archived
 - TXT and single-column XLSX import with a validation preview and atomic save
+- Round-trip UTF-8 TXT and XLSX export of active options in their current order, scoped to one parent genre for subgenres
 - One versioned English JSON source for all nine default catalog categories
 - A maintainer command that promotes the active local catalog into the next bundled default catalog
 - Custom-platform routing explained as Other
@@ -46,7 +48,7 @@ Select an Idea Pool row and choose **Edit** to reopen its complete saved snapsho
 
 All default options are versioned in [`catalog-source/en/default-catalog.json`](catalog-source/en/default-catalog.json). The JSON is embedded during build, so a fresh GitHub checkout starts with these defaults without importing any files. Application upgrades add missing shipped defaults while preserving local custom options and archive states. See [`catalog-source/README.md`](catalog-source/README.md) for the maintainer workflow.
 
-To add options to one local installation, select a category in Settings and use **Import TXT / XLSX**. See [`docs/catalog-import.md`](docs/catalog-import.md) for the supported file layout and validation rules.
+To exchange options with one local installation, select a category in Settings and use **Import TXT / XLSX** or **Export TXT / XLSX**. Names can also be edited and reordered directly in the table. See [`docs/catalog-import.md`](docs/catalog-import.md) for the supported file layout and behavior.
 
 ## Run locally
 

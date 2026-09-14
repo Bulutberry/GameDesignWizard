@@ -56,6 +56,41 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ExportCatalog_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var fileDialog = new SaveFileDialog
+        {
+            Title = "Export active catalog options",
+            Filter = "Excel workbook (*.xlsx)|*.xlsx|UTF-8 text (*.txt)|*.txt",
+            DefaultExt = ".xlsx",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = Path.GetFileNameWithoutExtension(viewModel.CatalogExportFileName)
+        };
+        if (fileDialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await viewModel.ExportSelectedCatalogAsync(fileDialog.FileName);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(
+                exception.Message,
+                "Catalog export",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
     private void AddMedia_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel)

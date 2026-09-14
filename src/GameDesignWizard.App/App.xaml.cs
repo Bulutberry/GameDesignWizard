@@ -27,7 +27,8 @@ public partial class App : Application
                 ideaRepository,
                 mediaStorage,
                 pdfExporter,
-                workbookExporter);
+                workbookExporter,
+                new CatalogFileWriter());
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);

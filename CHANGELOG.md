@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0
+
+- Add inline English-name editing for every Settings catalog while preserving stable option identities.
+- Keep fixed PC, Mobile, and Other routing metadata unchanged when a platform is renamed.
+- Add persistent up and down ordering controls for every catalog.
+- Limit subgenre reordering to siblings under the same parent genre.
+- Export active catalog options in their current order as UTF-8 TXT or single-column XLSX files.
+- Scope subgenre exports to the currently selected parent genre so the files can be imported again safely.
+- Write catalog exports through a temporary file before replacing the selected destination.
+
 ## 0.14.0
 
 - Make the PC, Mobile, and Other summary cards clickable pool filters with a visible selected state.

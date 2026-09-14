@@ -24,4 +24,14 @@ public interface ICatalogRepository
         Guid id,
         bool isActive,
         CancellationToken cancellationToken = default);
+
+    Task<CatalogOption> RenameOptionAsync(
+        Guid id,
+        string nameEnglish,
+        CancellationToken cancellationToken = default);
+
+    Task<CatalogOption> MoveOptionAsync(
+        Guid id,
+        int offset,
+        CancellationToken cancellationToken = default);
 }

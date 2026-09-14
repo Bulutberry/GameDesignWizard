@@ -17,6 +17,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IManagedMediaStorage? _managedMediaStorage;
     private readonly IGameIdeaPdfExporter? _gameIdeaPdfExporter;
     private readonly IGameIdeaWorkbookExporter? _gameIdeaWorkbookExporter;
+    private readonly ICatalogFileWriter? _catalogFileWriter;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private readonly List<string> _removedManagedMediaPaths = [];
     private AppPage _currentPage = AppPage.Home;
@@ -99,7 +100,8 @@ public sealed class MainWindowViewModel : ObservableObject
         IGameIdeaRepository? gameIdeaRepository,
         IManagedMediaStorage? managedMediaStorage,
         IGameIdeaPdfExporter? gameIdeaPdfExporter,
-        IGameIdeaWorkbookExporter? gameIdeaWorkbookExporter)
+        IGameIdeaWorkbookExporter? gameIdeaWorkbookExporter,
+        ICatalogFileWriter? catalogFileWriter = null)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
@@ -107,6 +109,7 @@ public sealed class MainWindowViewModel : ObservableObject
         _managedMediaStorage = managedMediaStorage;
         _gameIdeaPdfExporter = gameIdeaPdfExporter;
         _gameIdeaWorkbookExporter = gameIdeaWorkbookExporter;
+        _catalogFileWriter = catalogFileWriter;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -163,6 +166,9 @@ public sealed class MainWindowViewModel : ObservableObject
         NavigateSettingsCommand = new RelayCommand(_ => CurrentPage = AppPage.Settings);
         AddCatalogOptionCommand = new AsyncRelayCommand(_ => AddCatalogOptionAsync());
         ToggleCatalogOptionCommand = new AsyncRelayCommand(ToggleCatalogOptionAsync);
+        RenameCatalogOptionCommand = new AsyncRelayCommand(RenameCatalogOptionAsync);
+        MoveCatalogOptionUpCommand = new AsyncRelayCommand(option => MoveCatalogOptionAsync(option, -1));
+        MoveCatalogOptionDownCommand = new AsyncRelayCommand(option => MoveCatalogOptionAsync(option, 1));
         SelectPlatformCommand = new RelayCommand(SelectPlatform);
         SelectGenreCommand = new RelayCommand(SelectGenre);
         SelectSubgenreCommand = new RelayCommand(SelectSubgenre);
@@ -266,6 +272,12 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ICommand ToggleCatalogOptionCommand { get; }
 
+    public ICommand RenameCatalogOptionCommand { get; }
+
+    public ICommand MoveCatalogOptionUpCommand { get; }
+
+    public ICommand MoveCatalogOptionDownCommand { get; }
+
     public ICommand SelectPlatformCommand { get; }
 
     public ICommand SelectGenreCommand { get; }
@@ -308,6 +320,8 @@ public sealed class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(CatalogHeading));
             OnPropertyChanged(nameof(AddCatalogButtonLabel));
             OnPropertyChanged(nameof(CatalogInputHint));
+            OnPropertyChanged(nameof(CatalogExportDescription));
+            OnPropertyChanged(nameof(CatalogExportFileName));
             OnPropertyChanged(nameof(SubgenreParentVisibility));
             if (_isInitialized)
             {
@@ -319,7 +333,14 @@ public sealed class MainWindowViewModel : ObservableObject
     public CatalogOptionViewModel? SelectedParentGenre
     {
         get => _selectedParentGenre;
-        set => SetProperty(ref _selectedParentGenre, value);
+        set
+        {
+            if (SetProperty(ref _selectedParentGenre, value))
+            {
+                OnPropertyChanged(nameof(CatalogExportDescription));
+                OnPropertyChanged(nameof(CatalogExportFileName));
+            }
+        }
     }
 
     public string NewCatalogOptionName
@@ -552,6 +573,29 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public string CatalogInputHint => $"Enter a {SelectedCatalogCategory.SingularName.ToLowerInvariant()} name";
 
+    public string CatalogExportDescription => SelectedCatalogCategory.Category == CatalogCategory.Subgenre
+        ? SelectedParentGenre is null
+            ? "Select a parent genre to import or export its subgenres."
+            : $"Import and export operations apply to subgenres under {SelectedParentGenre.Name}."
+        : "Exports contain active options in the order shown and can be imported again.";
+
+    public string CatalogExportFileName
+    {
+        get
+        {
+            var categoryName = SelectedCatalogCategory.DisplayName.Replace(' ', '-').ToLowerInvariant();
+            if (SelectedCatalogCategory.Category != CatalogCategory.Subgenre || SelectedParentGenre is null)
+            {
+                return $"game-design-wizard-{categoryName}.xlsx";
+            }
+
+            var parentName = new string(SelectedParentGenre.Name
+                .Select(character => char.IsLetterOrDigit(character) ? char.ToLowerInvariant(character) : '-')
+                .ToArray()).Trim('-');
+            return $"game-design-wizard-{parentName}-subgenres.xlsx";
+        }
+    }
+
     public Visibility SubgenreParentVisibility =>
         SelectedCatalogCategory.Category == CatalogCategory.Subgenre ? Visibility.Visible : Visibility.Collapsed;
 
@@ -687,6 +731,30 @@ public sealed class MainWindowViewModel : ObservableObject
         SettingsMessage = $"{names.Length} option(s) imported from {preview.SourceFileName}.";
     }
 
+    public async Task ExportSelectedCatalogAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        if (_catalogFileWriter is null || _catalogRepository is null)
+        {
+            throw new InvalidOperationException("Catalog export is not available in preview mode.");
+        }
+
+        var category = SelectedCatalogCategory.Category;
+        var parentId = category == CatalogCategory.Subgenre ? SelectedParentGenre?.Id : null;
+        if (category == CatalogCategory.Subgenre && parentId is null)
+        {
+            throw new InvalidOperationException("Select a parent genre before exporting subgenres.");
+        }
+
+        var options = await _catalogRepository.GetOptionsAsync(category, cancellationToken);
+        var exportOptions = options
+            .Where(option => option.IsActive && (category != CatalogCategory.Subgenre || option.ParentOptionId == parentId))
+            .ToArray();
+        await _catalogFileWriter.WriteAsync(filePath, category, exportOptions, cancellationToken);
+        SettingsMessage = $"{exportOptions.Length} active option(s) exported to {Path.GetFileName(filePath)}.";
+    }
+
     private AppPage CurrentPage
     {
         get => _currentPage;
@@ -729,6 +797,7 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             var category = SelectedCatalogCategory.Category;
+            var selectedParentGenreId = SelectedParentGenre?.Id;
             IReadOnlyList<CatalogOption> genres = [];
             if (category == CatalogCategory.Subgenre)
             {
@@ -739,7 +808,8 @@ public sealed class MainWindowViewModel : ObservableObject
                     GenreChoices.Add(ToViewModel(genre));
                 }
 
-                SelectedParentGenre = GenreChoices.FirstOrDefault();
+                SelectedParentGenre = GenreChoices.FirstOrDefault(genre => genre.Id == selectedParentGenreId)
+                    ?? GenreChoices.FirstOrDefault();
             }
 
             var options = await _catalogRepository.GetOptionsAsync(category, cancellationToken);
@@ -753,6 +823,8 @@ public sealed class MainWindowViewModel : ObservableObject
                         ? parentName
                         : null));
             }
+
+            RefreshCatalogMoveAvailability();
 
             SettingsMessage = $"{CatalogOptions.Count} {SelectedCatalogCategory.DisplayName.ToLowerInvariant()} loaded. Changes are saved automatically.";
         }
@@ -877,6 +949,7 @@ public sealed class MainWindowViewModel : ObservableObject
                     parentName: SelectedParentGenre?.Name)
                 : ToViewModel(savedOption, SelectedParentGenre?.Name);
             CatalogOptions.Add(option);
+            RefreshCatalogMoveAvailability();
             if (category == CatalogCategory.Platform)
             {
                 Platforms.Add(ToViewModel(savedOption ?? new CatalogOption
@@ -955,6 +1028,138 @@ public sealed class MainWindowViewModel : ObservableObject
         catch (Exception)
         {
             SettingsMessage = "The catalog change could not be saved. Try again.";
+        }
+    }
+
+    private async Task RenameCatalogOptionAsync(object? parameter)
+    {
+        if (parameter is not CatalogOptionViewModel option)
+        {
+            return;
+        }
+
+        var oldName = option.Name;
+        try
+        {
+            var name = CleanPreviewName(option.EditName);
+            if (_catalogRepository is null)
+            {
+                if (CatalogOptions.Any(candidate => candidate.Id != option.Id
+                    && string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new InvalidOperationException($"{name} already exists in this catalog.");
+                }
+
+                option.AcceptName(name);
+            }
+            else
+            {
+                var savedOption = await _catalogRepository.RenameOptionAsync(option.Id, name);
+                option.AcceptName(savedOption.NameEnglish);
+            }
+
+            if (option.Category == CatalogCategory.Platform)
+            {
+                if (_catalogRepository is null)
+                {
+                    Platforms.Single(candidate => candidate.Id == option.Id).AcceptName(option.Name);
+                    RebuildActivePlatforms();
+                }
+                else
+                {
+                    await LoadPlatformsAsync();
+                }
+            }
+            else if (_catalogRepository is not null && IsWizardCatalog(option.Category))
+            {
+                await LoadWizardCatalogsAsync();
+            }
+
+            SettingsMessage = oldName == option.Name
+                ? $"{option.Name} is already up to date."
+                : $"{oldName} was renamed to {option.Name}. Stable catalog links were preserved.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            option.EditName = option.Name;
+            SettingsMessage = exception.Message;
+        }
+        catch (Exception)
+        {
+            option.EditName = option.Name;
+            SettingsMessage = "The catalog name could not be saved. Try again.";
+        }
+    }
+
+    private async Task MoveCatalogOptionAsync(object? parameter, int offset)
+    {
+        if (parameter is not CatalogOptionViewModel option)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_catalogRepository is null)
+            {
+                var siblings = option.Category == CatalogCategory.Subgenre
+                    ? CatalogOptions.Where(candidate => candidate.ParentOptionId == option.ParentOptionId).ToList()
+                    : CatalogOptions.ToList();
+                var siblingIndex = siblings.IndexOf(option);
+                var targetSiblingIndex = siblingIndex + offset;
+                if (siblingIndex < 0 || targetSiblingIndex < 0 || targetSiblingIndex >= siblings.Count)
+                {
+                    return;
+                }
+
+                var targetIndex = CatalogOptions.IndexOf(siblings[targetSiblingIndex]);
+                CatalogOptions.Move(CatalogOptions.IndexOf(option), targetIndex);
+                RefreshCatalogMoveAvailability();
+            }
+            else
+            {
+                await _catalogRepository.MoveOptionAsync(option.Id, offset);
+                await LoadSelectedCatalogAsync();
+                if (option.Category == CatalogCategory.Platform)
+                {
+                    await LoadPlatformsAsync();
+                }
+                else if (IsWizardCatalog(option.Category))
+                {
+                    await LoadWizardCatalogsAsync();
+                }
+            }
+
+            SettingsMessage = $"{option.Name} moved {(offset < 0 ? "up" : "down")}. The new order was saved.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            SettingsMessage = exception.Message;
+        }
+        catch (Exception)
+        {
+            SettingsMessage = "The catalog order could not be saved. Try again.";
+        }
+    }
+
+    private void RefreshCatalogMoveAvailability()
+    {
+        foreach (var option in CatalogOptions)
+        {
+            option.CanMoveUp = false;
+            option.CanMoveDown = false;
+        }
+
+        IEnumerable<List<CatalogOptionViewModel>> groups = SelectedCatalogCategory.Category == CatalogCategory.Subgenre
+            ? CatalogOptions.GroupBy(option => option.ParentOptionId).Select(group => group.ToList())
+            : [CatalogOptions.ToList()];
+        foreach (var group in groups)
+        {
+            for (var index = 0; index < group.Count; index++)
+            {
+                group[index].CanMoveUp = index > 0;
+                group[index].CanMoveDown = index < group.Count - 1;
+            }
         }
     }
 
@@ -2057,7 +2262,12 @@ public sealed class MainWindowViewModel : ObservableObject
         var cleaned = string.Join(' ', value.Split(' ', StringSplitOptions.RemoveEmptyEntries));
         if (cleaned.Length == 0)
         {
-            throw new InvalidOperationException("Enter an option name before adding it.");
+            throw new InvalidOperationException("Enter an option name.");
+        }
+
+        if (cleaned.Length > 200)
+        {
+            throw new InvalidOperationException("Option names must contain 200 characters or fewer.");
         }
 
         return cleaned;
