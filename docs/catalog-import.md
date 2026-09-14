@@ -9,6 +9,10 @@ GameDesignWizard supports direct editing and bulk import or export for the categ
 - Subgenres move only within their parent genre. Their relationship is never changed by reordering.
 - Renaming a platform does not change its PC, Mobile, or Other routing group.
 - Archive hides an option from new wizard selections. Restore makes it selectable again.
+- Search matches option names and parent genre names without changing the saved catalog.
+- The status filter can show all, active, or archived options and combines with search.
+- Clear filters before reordering. This keeps every move visible within the complete saved order.
+- The Settings list uses row virtualization so large catalogs do not create every on-screen control at once.
 
 ## TXT files
 

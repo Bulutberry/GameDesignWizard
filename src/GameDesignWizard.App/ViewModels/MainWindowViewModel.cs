@@ -24,6 +24,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private CatalogCategoryItemViewModel _selectedCatalogCategory;
     private CatalogOptionViewModel? _selectedParentGenre;
     private string _newCatalogOptionName = string.Empty;
+    private string _catalogSearchText = string.Empty;
+    private string _selectedCatalogStatusFilter = "All options";
     private string _selectedPlatformName = "None";
     private string _settingsMessage;
     private string _wizardMessage = "Select a platform or leave the step empty.";
@@ -126,6 +128,8 @@ public sealed class MainWindowViewModel : ObservableObject
         Platforms = [];
         ActivePlatforms = [];
         CatalogOptions = [];
+        CatalogOptionsView = CollectionViewSource.GetDefaultView(CatalogOptions);
+        CatalogOptionsView.Filter = MatchesCatalogFilters;
         GenreChoices = [];
         Genres = [];
         AvailableSubgenres = [];
@@ -169,6 +173,7 @@ public sealed class MainWindowViewModel : ObservableObject
         RenameCatalogOptionCommand = new AsyncRelayCommand(RenameCatalogOptionAsync);
         MoveCatalogOptionUpCommand = new AsyncRelayCommand(option => MoveCatalogOptionAsync(option, -1));
         MoveCatalogOptionDownCommand = new AsyncRelayCommand(option => MoveCatalogOptionAsync(option, 1));
+        ClearCatalogFiltersCommand = new RelayCommand(_ => ClearCatalogFilters());
         SelectPlatformCommand = new RelayCommand(SelectPlatform);
         SelectGenreCommand = new RelayCommand(SelectGenre);
         SelectSubgenreCommand = new RelayCommand(SelectSubgenre);
@@ -192,6 +197,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<CatalogOptionViewModel> ActivePlatforms { get; }
 
     public ObservableCollection<CatalogOptionViewModel> CatalogOptions { get; }
+
+    public ICollectionView CatalogOptionsView { get; }
+
+    public IReadOnlyList<string> CatalogStatusFilters { get; } = ["All options", "Active", "Archived"];
 
     public ObservableCollection<CatalogOptionViewModel> GenreChoices { get; }
 
@@ -278,6 +287,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ICommand MoveCatalogOptionDownCommand { get; }
 
+    public ICommand ClearCatalogFiltersCommand { get; }
+
     public ICommand SelectPlatformCommand { get; }
 
     public ICommand SelectGenreCommand { get; }
@@ -317,6 +328,7 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             NewCatalogOptionName = string.Empty;
+            ClearCatalogFilters();
             OnPropertyChanged(nameof(CatalogHeading));
             OnPropertyChanged(nameof(AddCatalogButtonLabel));
             OnPropertyChanged(nameof(CatalogInputHint));
@@ -347,6 +359,30 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _newCatalogOptionName;
         set => SetProperty(ref _newCatalogOptionName, value);
+    }
+
+    public string CatalogSearchText
+    {
+        get => _catalogSearchText;
+        set
+        {
+            if (SetProperty(ref _catalogSearchText, value))
+            {
+                RefreshCatalogOptionsView();
+            }
+        }
+    }
+
+    public string SelectedCatalogStatusFilter
+    {
+        get => _selectedCatalogStatusFilter;
+        set
+        {
+            if (SetProperty(ref _selectedCatalogStatusFilter, value))
+            {
+                RefreshCatalogOptionsView();
+            }
+        }
     }
 
     public string SelectedPlatformName
@@ -596,6 +632,15 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    public int VisibleCatalogOptionCount => CatalogOptionsView.Cast<CatalogOptionViewModel>().Count();
+
+    public bool HasCatalogFilters => !string.IsNullOrWhiteSpace(CatalogSearchText)
+        || SelectedCatalogStatusFilter != "All options";
+
+    public string CatalogResultsMessage => HasCatalogFilters
+        ? $"Showing {VisibleCatalogOptionCount} of {CatalogOptions.Count} option(s). Clear filters to change the saved order."
+        : $"{CatalogOptions.Count} option(s) in saved order.";
+
     public Visibility SubgenreParentVisibility =>
         SelectedCatalogCategory.Category == CatalogCategory.Subgenre ? Visibility.Visible : Visibility.Collapsed;
 
@@ -824,7 +869,7 @@ public sealed class MainWindowViewModel : ObservableObject
                         : null));
             }
 
-            RefreshCatalogMoveAvailability();
+            RefreshCatalogOptionsView();
 
             SettingsMessage = $"{CatalogOptions.Count} {SelectedCatalogCategory.DisplayName.ToLowerInvariant()} loaded. Changes are saved automatically.";
         }
@@ -949,7 +994,7 @@ public sealed class MainWindowViewModel : ObservableObject
                     parentName: SelectedParentGenre?.Name)
                 : ToViewModel(savedOption, SelectedParentGenre?.Name);
             CatalogOptions.Add(option);
-            RefreshCatalogMoveAvailability();
+            RefreshCatalogOptionsView();
             if (category == CatalogCategory.Platform)
             {
                 Platforms.Add(ToViewModel(savedOption ?? new CatalogOption
@@ -998,6 +1043,7 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             option.IsActive = newState;
+            RefreshCatalogOptionsView();
             if (option.Category == CatalogCategory.Platform)
             {
                 var platform = Platforms.Single(candidate => candidate.Id == option.Id);
@@ -1058,6 +1104,8 @@ public sealed class MainWindowViewModel : ObservableObject
                 option.AcceptName(savedOption.NameEnglish);
             }
 
+            RefreshCatalogOptionsView();
+
             if (option.Category == CatalogCategory.Platform)
             {
                 if (_catalogRepository is null)
@@ -1095,6 +1143,12 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         if (parameter is not CatalogOptionViewModel option)
         {
+            return;
+        }
+
+        if (HasCatalogFilters)
+        {
+            SettingsMessage = "Clear catalog filters before changing the saved order.";
             return;
         }
 
@@ -1150,6 +1204,11 @@ public sealed class MainWindowViewModel : ObservableObject
             option.CanMoveDown = false;
         }
 
+        if (HasCatalogFilters)
+        {
+            return;
+        }
+
         IEnumerable<List<CatalogOptionViewModel>> groups = SelectedCatalogCategory.Category == CatalogCategory.Subgenre
             ? CatalogOptions.GroupBy(option => option.ParentOptionId).Select(group => group.ToList())
             : [CatalogOptions.ToList()];
@@ -1161,6 +1220,61 @@ public sealed class MainWindowViewModel : ObservableObject
                 group[index].CanMoveDown = index < group.Count - 1;
             }
         }
+    }
+
+    private bool MatchesCatalogFilters(object item)
+    {
+        if (item is not CatalogOptionViewModel option)
+        {
+            return false;
+        }
+
+        if (SelectedCatalogStatusFilter == "Active" && !option.IsActive)
+        {
+            return false;
+        }
+
+        if (SelectedCatalogStatusFilter == "Archived" && option.IsActive)
+        {
+            return false;
+        }
+
+        var searchText = CatalogSearchText.Trim();
+        return searchText.Length == 0
+            || option.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+            || (option.ParentName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private void ClearCatalogFilters()
+    {
+        var changed = false;
+        if (_catalogSearchText.Length > 0)
+        {
+            _catalogSearchText = string.Empty;
+            OnPropertyChanged(nameof(CatalogSearchText));
+            changed = true;
+        }
+
+        if (_selectedCatalogStatusFilter != "All options")
+        {
+            _selectedCatalogStatusFilter = "All options";
+            OnPropertyChanged(nameof(SelectedCatalogStatusFilter));
+            changed = true;
+        }
+
+        if (changed)
+        {
+            RefreshCatalogOptionsView();
+        }
+    }
+
+    private void RefreshCatalogOptionsView()
+    {
+        CatalogOptionsView.Refresh();
+        RefreshCatalogMoveAvailability();
+        OnPropertyChanged(nameof(VisibleCatalogOptionCount));
+        OnPropertyChanged(nameof(HasCatalogFilters));
+        OnPropertyChanged(nameof(CatalogResultsMessage));
     }
 
     private void SelectPlatform(object? parameter)

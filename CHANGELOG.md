@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0
+
+- Add case-insensitive Settings catalog search across option and parent-genre names.
+- Add All options, Active, and Archived status filters that combine with search.
+- Show visible and total catalog result counts with one Clear filters action.
+- Disable ordering while filters are active so hidden rows cannot cause an unclear saved order change.
+- Replace the eager Settings item list with recycling WPF row virtualization for large catalogs.
+
 ## 0.15.0
 
 - Add inline English-name editing for every Settings catalog while preserving stable option identities.
