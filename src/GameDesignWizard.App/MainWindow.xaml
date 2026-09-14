@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.6.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.7.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -165,7 +165,7 @@
                     <Border Height="5" Background="{StaticResource AccentBrush}" CornerRadius="3" />
                     <Border Grid.Column="1" Height="5" Background="{Binding WizardSecondProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="2" Height="5" Background="{Binding WizardThirdProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
-                    <Border Grid.Column="3" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
+                    <Border Grid.Column="3" Height="5" Background="{Binding WizardFourthProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="4" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="5" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
                 </Grid>
@@ -286,6 +286,12 @@
                         <controls:DualListPicker DataContext="{Binding FeaturePicker}" />
                         <controls:DualListPicker Grid.Column="2" DataContext="{Binding ArtStylePicker}" />
                     </Grid>
+                </ScrollViewer>
+
+                <ScrollViewer Grid.Row="2" Margin="0,35,0,20" VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding WizardStepFourVisibility}">
+                    <controls:DualListPicker DataContext="{Binding MechanicsPicker}"
+                                             Width="760" Height="370" HorizontalAlignment="Center" />
                 </ScrollViewer>
 
                 <Grid Grid.Row="3">

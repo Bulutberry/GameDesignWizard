@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+- Add wizard step 4 for multi-selection of gameplay mechanics.
+- Reuse the searchable, virtualized dual-list control and its double-click and Enter interactions.
+- Refresh mechanic choices immediately after Settings additions, imports, archives, and restores.
+- Preserve mechanic selections while filtering or refreshing the catalog.
+- Extend forward, previous, summary, and progress behavior through the fourth wizard step.
+
 ## 0.6.0
 
 - Add wizard step 3 for independent multi-selection of features and art styles.

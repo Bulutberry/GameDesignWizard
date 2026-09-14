@@ -61,9 +61,11 @@ public sealed class MainWindowViewModel : ObservableObject
         TopicPicker = new DualListPickerViewModel("Topics", CatalogCategory.Topic);
         FeaturePicker = new DualListPickerViewModel("Features", CatalogCategory.Feature);
         ArtStylePicker = new DualListPickerViewModel("Art styles", CatalogCategory.ArtStyle);
+        MechanicsPicker = new DualListPickerViewModel("Mechanics", CatalogCategory.Mechanic);
         TopicPicker.SelectionChanged += (_, _) => PickerSelectionChanged(TopicPicker);
         FeaturePicker.SelectionChanged += (_, _) => PickerSelectionChanged(FeaturePicker);
         ArtStylePicker.SelectionChanged += (_, _) => PickerSelectionChanged(ArtStylePicker);
+        MechanicsPicker.SelectionChanged += (_, _) => PickerSelectionChanged(MechanicsPicker);
         _settingsMessage = catalogRepository is null
             ? "Catalog changes appear immediately in the wizard."
             : "Catalog changes are saved automatically on this device.";
@@ -111,6 +113,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public DualListPickerViewModel FeaturePicker { get; }
 
     public DualListPickerViewModel ArtStylePicker { get; }
+
+    public DualListPickerViewModel MechanicsPicker { get; }
 
     public ICommand NavigateHomeCommand { get; }
 
@@ -232,6 +236,7 @@ public sealed class MainWindowViewModel : ObservableObject
         1 => "Choose a target platform",
         2 => "Choose genre, subgenre, and topics",
         3 => "Choose features and art styles",
+        4 => "Choose gameplay mechanics",
         _ => "Create your game idea"
     };
 
@@ -240,6 +245,7 @@ public sealed class MainWindowViewModel : ObservableObject
         1 => "Select one option or leave this step empty and continue.",
         2 => "Choose one genre, an optional related subgenre, and any number of topics.",
         3 => "Choose any number of features and art styles. Double-click or press Enter to move an item.",
+        4 => "Choose any number of mechanics. Double-click or press Enter to move an item.",
         _ => "Complete this step or leave it empty and continue."
     };
 
@@ -250,6 +256,7 @@ public sealed class MainWindowViewModel : ObservableObject
         1 => "Continue",
         2 => "Continue to Step 3",
         3 => "Continue to Step 4",
+        4 => "Continue to Step 5",
         _ => "Continue"
     };
 
@@ -260,6 +267,7 @@ public sealed class MainWindowViewModel : ObservableObject
         1 => $"Selected platform: {SelectedPlatformName}",
         2 => $"Genre: {SelectedGenre?.Name ?? "None"} · Subgenre: {SelectedSubgenre?.Name ?? "None"} · Topics: {SelectedTopics.Count}",
         3 => $"Features: {FeaturePicker.SelectedOptions.Count} · Art styles: {ArtStylePicker.SelectedOptions.Count}",
+        4 => $"Mechanics: {MechanicsPicker.SelectedOptions.Count}",
         _ => string.Empty
     };
 
@@ -269,9 +277,13 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public Visibility WizardStepThreeVisibility => _wizardStep == 3 ? Visibility.Visible : Visibility.Collapsed;
 
+    public Visibility WizardStepFourVisibility => _wizardStep == 4 ? Visibility.Visible : Visibility.Collapsed;
+
     public string WizardSecondProgressColor => _wizardStep >= 2 ? "#6C5CE7" : "#E1E3EC";
 
     public string WizardThirdProgressColor => _wizardStep >= 3 ? "#6C5CE7" : "#E1E3EC";
+
+    public string WizardFourthProgressColor => _wizardStep >= 4 ? "#6C5CE7" : "#E1E3EC";
 
     public string CatalogHeading => $"Manage {SelectedCatalogCategory.DisplayName.ToLowerInvariant()}";
 
@@ -506,6 +518,7 @@ public sealed class MainWindowViewModel : ObservableObject
         var topics = await _catalogRepository.GetOptionsAsync(CatalogCategory.Topic, cancellationToken);
         var features = await _catalogRepository.GetOptionsAsync(CatalogCategory.Feature, cancellationToken);
         var artStyles = await _catalogRepository.GetOptionsAsync(CatalogCategory.ArtStyle, cancellationToken);
+        var mechanics = await _catalogRepository.GetOptionsAsync(CatalogCategory.Mechanic, cancellationToken);
 
         Genres.Clear();
         foreach (var genre in genres.Where(option => option.IsActive))
@@ -518,6 +531,7 @@ public sealed class MainWindowViewModel : ObservableObject
         TopicPicker.LoadOptions(topics.Select(option => ToViewModel(option)));
         FeaturePicker.LoadOptions(features.Select(option => ToViewModel(option)));
         ArtStylePicker.LoadOptions(artStyles.Select(option => ToViewModel(option)));
+        MechanicsPicker.LoadOptions(mechanics.Select(option => ToViewModel(option)));
 
         if (SelectedGenre is not null)
         {
@@ -721,17 +735,21 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void MoveWizardNext()
     {
-        if (_wizardStep < 3)
+        if (_wizardStep < 4)
         {
             _wizardStep++;
-            WizardMessage = _wizardStep == 2
-                ? "Choose one genre, an optional subgenre, and any number of topics."
-                : "Choose features and art styles, or leave either list empty.";
+            WizardMessage = _wizardStep switch
+            {
+                2 => "Choose one genre, an optional subgenre, and any number of topics.",
+                3 => "Choose features and art styles, or leave either list empty.",
+                4 => "Choose gameplay mechanics, or leave this list empty.",
+                _ => string.Empty
+            };
             NotifyWizardStepChanged();
             return;
         }
 
-        WizardMessage = "Step 4 will be added after this wizard prototype is approved.";
+        WizardMessage = "Step 5 will be added after this wizard prototype is approved.";
     }
 
     private void MoveWizardPrevious()
@@ -743,9 +761,13 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         _wizardStep--;
-        WizardMessage = _wizardStep == 1
-            ? "Select a platform or leave the step empty."
-            : "Choose one genre, an optional subgenre, and any number of topics.";
+        WizardMessage = _wizardStep switch
+        {
+            1 => "Select a platform or leave the step empty.",
+            2 => "Choose one genre, an optional subgenre, and any number of topics.",
+            3 => "Choose features and art styles, or leave either list empty.",
+            _ => string.Empty
+        };
         NotifyWizardStepChanged();
     }
 
@@ -760,8 +782,10 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(WizardStepOneVisibility));
         OnPropertyChanged(nameof(WizardStepTwoVisibility));
         OnPropertyChanged(nameof(WizardStepThreeVisibility));
+        OnPropertyChanged(nameof(WizardStepFourVisibility));
         OnPropertyChanged(nameof(WizardSecondProgressColor));
         OnPropertyChanged(nameof(WizardThirdProgressColor));
+        OnPropertyChanged(nameof(WizardFourthProgressColor));
     }
 
     private void PickerSelectionChanged(DualListPickerViewModel picker)
@@ -772,6 +796,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 CatalogCategory.ArtStyle => "art style",
                 CatalogCategory.Feature => "feature",
+                CatalogCategory.Mechanic => "mechanic",
                 CatalogCategory.Topic => "topic",
                 _ => picker.Title.ToLowerInvariant()
             }
@@ -783,6 +808,7 @@ public sealed class MainWindowViewModel : ObservableObject
         CatalogCategory.Genre or
         CatalogCategory.Subgenre or
         CatalogCategory.Topic or
+        CatalogCategory.Mechanic or
         CatalogCategory.Feature or
         CatalogCategory.ArtStyle;
 
