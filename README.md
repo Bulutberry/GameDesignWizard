@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.13.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, managed media attachments, individual GDD PDF export, complete idea-pool XLSX export, bulk catalog import, and distributable defaults:
+Prototype 0.14.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, individual GDD PDF export, complete and filtered idea-pool XLSX export, bulk catalog import, and distributable defaults:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -21,6 +21,8 @@ Prototype 0.13.0 validates the visual direction, persistent dynamic catalogs, th
 - Development stages for Idea, Concept, Prototyping, Completed, and Shelved
 - Confirmed idea deletion with cleanup of its managed image and audio files
 - A fresh draft after choosing Create Game Idea from a saved or edited idea
+- Combined Idea Pool search, development-stage filtering, and clickable PC, Mobile, or Other pool cards
+- Filtered XLSX export that contains exactly the ideas currently visible in the table
 - Selected-idea PDF export with metadata, written GDD sections, references, images, captions, audio-file notes, and page numbers
 - Complete XLSX export across the PC, Mobile, and Other pools, including lossless selection, GDD, reference, and media detail sheets
 - Fixed PC, Mobile, and Other idea-pool groups
@@ -38,7 +40,7 @@ Saved image and audio attachments are copied into `%LOCALAPPDATA%\GameDesignWiza
 
 Select a saved row in Idea Pool and choose **Export PDF** to create an A4 game design document. See [`docs/pdf-export.md`](docs/pdf-export.md) for the current document contract.
 
-Choose **Export All XLSX** in Idea Pool to create one workbook containing every saved idea. The export keeps the fixed pool views easy to scan and includes normalized detail sheets for complete data. See [`docs/idea-pool-export.md`](docs/idea-pool-export.md) for the workbook contract.
+Choose **Export All XLSX** in Idea Pool to create one workbook containing every saved idea, or **Export Filtered XLSX** to export only the current search, stage, and pool result. Both exports keep the fixed pool views easy to scan and include normalized detail sheets for complete data. See [`docs/idea-pool-export.md`](docs/idea-pool-export.md) for the workbook contract.
 
 Select an Idea Pool row and choose **Edit** to reopen its complete saved snapshot in the wizard. Choose **Delete** to remove the selected idea after confirmation. See [`docs/idea-pool-management.md`](docs/idea-pool-management.md) for editing, stage, routing, and deletion behavior.
 

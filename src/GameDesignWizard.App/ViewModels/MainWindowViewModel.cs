@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Input;
 using GameDesignWizard.Core.Catalog;
 using GameDesignWizard.Core.Ideas;
@@ -36,6 +37,9 @@ public sealed class MainWindowViewModel : ObservableObject
     private GameIdeaStage _selectedDevelopmentStage = GameIdeaStage.Idea;
     private GameIdeaListItemViewModel? _selectedSavedIdea;
     private string? _ideaPoolActionMessage;
+    private string _ideaPoolSearchText = string.Empty;
+    private string _selectedIdeaPoolFilter = "All";
+    private string _selectedIdeaPoolStageFilter = "All stages";
     private Guid _draftIdeaId = Guid.NewGuid();
     private DateTime _draftCreatedAtUtc = DateTime.UtcNow;
     private bool _hasSavedIdea;
@@ -128,6 +132,8 @@ public sealed class MainWindowViewModel : ObservableObject
         DevelopmentStageChoices = Enum.GetValues<GameIdeaStage>();
         GddSections = CreateDefaultGddSections();
         SavedIdeas = [];
+        SavedIdeasView = CollectionViewSource.GetDefaultView(SavedIdeas);
+        SavedIdeasView.Filter = MatchesIdeaPoolFilters;
         MediaAttachments = [];
         foreach (var section in GddSections)
         {
@@ -167,6 +173,8 @@ public sealed class MainWindowViewModel : ObservableObject
         ClearDevelopmentDurationCommand = new RelayCommand(_ => SelectedDevelopmentDuration = null);
         ClearTeamSizeCommand = new RelayCommand(_ => SelectedTeamSize = null);
         RemoveMediaCommand = new RelayCommand(RemoveMedia);
+        SelectIdeaPoolFilterCommand = new RelayCommand(SelectIdeaPoolFilter);
+        ClearIdeaPoolFiltersCommand = new RelayCommand(_ => ClearIdeaPoolFilters());
         WizardNextCommand = new AsyncRelayCommand(_ => MoveWizardNextAsync());
         WizardPreviousCommand = new RelayCommand(_ => MoveWizardPrevious());
     }
@@ -195,6 +203,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ObservableCollection<GameIdeaListItemViewModel> SavedIdeas { get; }
 
+    public ICollectionView SavedIdeasView { get; }
+
+    public IReadOnlyList<string> IdeaPoolStageFilters { get; } =
+        ["All stages", "Idea", "Concept", "Prototyping", "Completed", "Shelved"];
+
     public GameIdeaListItemViewModel? SelectedSavedIdea
     {
         get => _selectedSavedIdea;
@@ -215,6 +228,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool CanExportSelectedIdeaPdf => HasSelectedSavedIdea && !IsIdeaPoolActionRunning;
 
     public bool CanExportAllIdeasWorkbook => SavedIdeas.Count > 0 && !IsIdeaPoolActionRunning;
+
+    public bool CanExportFilteredIdeasWorkbook => VisibleIdeaCount > 0 && !IsIdeaPoolActionRunning;
 
     public bool CanEditSelectedIdea => HasSelectedSavedIdea && !IsIdeaPoolActionRunning;
 
@@ -270,6 +285,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public ICommand ClearTeamSizeCommand { get; }
 
     public ICommand RemoveMediaCommand { get; }
+
+    public ICommand SelectIdeaPoolFilterCommand { get; }
+
+    public ICommand ClearIdeaPoolFiltersCommand { get; }
 
     public ICommand WizardNextCommand { get; }
 
@@ -356,6 +375,43 @@ public sealed class MainWindowViewModel : ObservableObject
             }
         }
     }
+
+    public string IdeaPoolSearchText
+    {
+        get => _ideaPoolSearchText;
+        set
+        {
+            if (SetProperty(ref _ideaPoolSearchText, value ?? string.Empty))
+            {
+                RefreshIdeaPoolFilters();
+            }
+        }
+    }
+
+    public string SelectedIdeaPoolStageFilter
+    {
+        get => _selectedIdeaPoolStageFilter;
+        set
+        {
+            var normalizedValue = IdeaPoolStageFilters.Contains(value, StringComparer.Ordinal)
+                ? value
+                : "All stages";
+            if (SetProperty(ref _selectedIdeaPoolStageFilter, normalizedValue))
+            {
+                RefreshIdeaPoolFilters();
+            }
+        }
+    }
+
+    public string SelectedIdeaPoolFilterLabel => _selectedIdeaPoolFilter == "All"
+        ? "VIEW: All pools"
+        : $"VIEW: {_selectedIdeaPoolFilter} pool";
+
+    public bool IsPcIdeaPoolFilterSelected => _selectedIdeaPoolFilter == "PC";
+
+    public bool IsMobileIdeaPoolFilterSelected => _selectedIdeaPoolFilter == "Mobile";
+
+    public bool IsOtherIdeaPoolFilterSelected => _selectedIdeaPoolFilter == "Other";
 
     public string SettingsMessage
     {
@@ -482,9 +538,13 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public int OtherIdeaCount => SavedIdeas.Count(idea => idea.PoolGroup == PlatformPoolGroup.Other);
 
+    public int VisibleIdeaCount => SavedIdeasView.Cast<GameIdeaListItemViewModel>().Count();
+
     public string IdeaPoolMessage => _ideaPoolActionMessage ?? (SavedIdeas.Count == 0
         ? "No saved ideas yet. Complete the wizard to create the first one."
-        : $"{SavedIdeas.Count} saved idea(s), ordered by the most recent update.");
+        : VisibleIdeaCount == SavedIdeas.Count
+            ? $"{SavedIdeas.Count} saved idea(s), ordered by the most recent update."
+            : $"Showing {VisibleIdeaCount} of {SavedIdeas.Count} saved idea(s).");
 
     public string CatalogHeading => $"Manage {SelectedCatalogCategory.DisplayName.ToLowerInvariant()}";
 
@@ -1352,9 +1412,26 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
-    public async Task ExportAllIdeasWorkbookAsync(
+    public Task ExportAllIdeasWorkbookAsync(
+        string destinationPath,
+        CancellationToken cancellationToken = default) =>
+        ExportIdeasWorkbookAsync(destinationPath, null, cancellationToken);
+
+    public Task ExportFilteredIdeasWorkbookAsync(
         string destinationPath,
         CancellationToken cancellationToken = default)
+    {
+        var visibleIdeaIds = SavedIdeasView
+            .Cast<GameIdeaListItemViewModel>()
+            .Select(idea => idea.Id)
+            .ToArray();
+        return ExportIdeasWorkbookAsync(destinationPath, visibleIdeaIds, cancellationToken);
+    }
+
+    private async Task ExportIdeasWorkbookAsync(
+        string destinationPath,
+        IReadOnlyList<Guid>? includedIdeaIds,
+        CancellationToken cancellationToken)
     {
         if (_gameIdeaRepository is null || _gameIdeaWorkbookExporter is null)
         {
@@ -1371,10 +1448,22 @@ public sealed class MainWindowViewModel : ObservableObject
         NotifyIdeaPoolSelectionActionsChanged();
         try
         {
-            var ideas = await _gameIdeaRepository.GetAllAsync(cancellationToken);
+            var allIdeas = await _gameIdeaRepository.GetAllAsync(cancellationToken);
+            IReadOnlyList<GameIdeaDocument> ideas = allIdeas;
+            if (includedIdeaIds is not null)
+            {
+                var ideasById = allIdeas.ToDictionary(idea => idea.Id);
+                ideas = includedIdeaIds
+                    .Select(id => ideasById.GetValueOrDefault(id))
+                    .OfType<GameIdeaDocument>()
+                    .ToArray();
+            }
+
             if (ideas.Count == 0)
             {
-                SetIdeaPoolActionMessage("Save at least one idea before exporting the workbook.");
+                SetIdeaPoolActionMessage(includedIdeaIds is null
+                    ? "Save at least one idea before exporting the workbook."
+                    : "No ideas match the current filters.");
                 return;
             }
 
@@ -1524,11 +1613,18 @@ public sealed class MainWindowViewModel : ObservableObject
         SelectedSavedIdea = selectedIdeaId is null
             ? null
             : SavedIdeas.FirstOrDefault(idea => idea.Id == selectedIdeaId);
+        SavedIdeasView.Refresh();
+        if (SelectedSavedIdea is not null && !SavedIdeasView.Contains(SelectedSavedIdea))
+        {
+            SelectedSavedIdea = null;
+        }
 
         OnPropertyChanged(nameof(PcIdeaCount));
         OnPropertyChanged(nameof(MobileIdeaCount));
         OnPropertyChanged(nameof(OtherIdeaCount));
+        OnPropertyChanged(nameof(VisibleIdeaCount));
         OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
+        OnPropertyChanged(nameof(CanExportFilteredIdeasWorkbook));
         OnPropertyChanged(nameof(IdeaPoolMessage));
     }
 
@@ -1542,8 +1638,83 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
         OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
+        OnPropertyChanged(nameof(CanExportFilteredIdeasWorkbook));
         OnPropertyChanged(nameof(CanEditSelectedIdea));
         OnPropertyChanged(nameof(CanDeleteSelectedIdea));
+    }
+
+    private void SelectIdeaPoolFilter(object? parameter)
+    {
+        var filter = parameter as string;
+        if (filter is not ("All" or "PC" or "Mobile" or "Other")
+            || string.Equals(_selectedIdeaPoolFilter, filter, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _selectedIdeaPoolFilter = filter;
+        OnPropertyChanged(nameof(SelectedIdeaPoolFilterLabel));
+        OnPropertyChanged(nameof(IsPcIdeaPoolFilterSelected));
+        OnPropertyChanged(nameof(IsMobileIdeaPoolFilterSelected));
+        OnPropertyChanged(nameof(IsOtherIdeaPoolFilterSelected));
+        RefreshIdeaPoolFilters();
+    }
+
+    private void ClearIdeaPoolFilters()
+    {
+        var poolChanged = _selectedIdeaPoolFilter != "All";
+        _selectedIdeaPoolFilter = "All";
+        _ideaPoolSearchText = string.Empty;
+        _selectedIdeaPoolStageFilter = "All stages";
+        OnPropertyChanged(nameof(IdeaPoolSearchText));
+        OnPropertyChanged(nameof(SelectedIdeaPoolStageFilter));
+        OnPropertyChanged(nameof(SelectedIdeaPoolFilterLabel));
+        if (poolChanged)
+        {
+            OnPropertyChanged(nameof(IsPcIdeaPoolFilterSelected));
+            OnPropertyChanged(nameof(IsMobileIdeaPoolFilterSelected));
+            OnPropertyChanged(nameof(IsOtherIdeaPoolFilterSelected));
+        }
+
+        RefreshIdeaPoolFilters();
+    }
+
+    private void RefreshIdeaPoolFilters()
+    {
+        _ideaPoolActionMessage = null;
+        SavedIdeasView.Refresh();
+        if (SelectedSavedIdea is not null && !SavedIdeasView.Contains(SelectedSavedIdea))
+        {
+            SelectedSavedIdea = null;
+        }
+
+        OnPropertyChanged(nameof(VisibleIdeaCount));
+        OnPropertyChanged(nameof(CanExportFilteredIdeasWorkbook));
+        OnPropertyChanged(nameof(IdeaPoolMessage));
+    }
+
+    private bool MatchesIdeaPoolFilters(object candidate)
+    {
+        if (candidate is not GameIdeaListItemViewModel idea)
+        {
+            return false;
+        }
+
+        if (_selectedIdeaPoolFilter != "All"
+            && !string.Equals(idea.PoolName, _selectedIdeaPoolFilter, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (_selectedIdeaPoolStageFilter != "All stages"
+            && !string.Equals(idea.Stage, _selectedIdeaPoolStageFilter, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var search = _ideaPoolSearchText.Trim();
+        return search.Length == 0
+            || idea.SearchIndex.Contains(search, StringComparison.OrdinalIgnoreCase);
     }
 
     private void LoadIdeaIntoDraft(GameIdeaDocument idea)

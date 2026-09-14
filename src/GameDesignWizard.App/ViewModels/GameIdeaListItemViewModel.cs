@@ -31,4 +31,19 @@ public sealed class GameIdeaListItemViewModel(GameIdeaDocument idea)
     public string Stage { get; } = idea.Stage.ToString();
 
     public string Updated { get; } = idea.UpdatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+    public string SearchIndex { get; } = string.Join(' ', new[]
+    {
+        idea.NameEnglish,
+        idea.Platform?.NameEnglish,
+        idea.Genre?.NameEnglish,
+        idea.Subgenre?.NameEnglish,
+        string.Join(' ', idea.Topics.Select(option => option.NameEnglish)),
+        string.Join(' ', idea.Mechanics.Select(option => option.NameEnglish)),
+        string.Join(' ', idea.Features.Select(option => option.NameEnglish)),
+        string.Join(' ', idea.ArtStyles.Select(option => option.NameEnglish)),
+        idea.DevelopmentDuration?.NameEnglish,
+        idea.TeamSize?.NameEnglish,
+        idea.Stage.ToString()
+    }.Where(value => !string.IsNullOrWhiteSpace(value)));
 }

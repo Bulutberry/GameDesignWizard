@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.13.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.14.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -535,32 +535,113 @@
                     </StackPanel>
 
                     <UniformGrid Grid.Row="1" Columns="3" Margin="0,26,0,22">
-                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="PC" FontSize="18" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding PcIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
-                            </StackPanel>
-                        </Border>
-                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18" Margin="5,0">
-                            <StackPanel>
-                                <TextBlock Text="Mobile" FontSize="18" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding MobileIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
-                            </StackPanel>
-                        </Border>
-                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18" Margin="10,0,0,0">
-                            <StackPanel>
-                                <TextBlock Text="Other" FontSize="18" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding OtherIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
-                            </StackPanel>
-                        </Border>
+                        <Button Command="{Binding SelectIdeaPoolFilterCommand}" CommandParameter="PC"
+                                Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,10,0"
+                                HorizontalContentAlignment="Stretch" Cursor="Hand" AutomationProperties.Name="Show PC ideas">
+                            <Border BorderThickness="1" CornerRadius="12" Padding="18">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="White" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPcIdeaPoolFilterSelected}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="PC" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding PcIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                        <Button Command="{Binding SelectIdeaPoolFilterCommand}" CommandParameter="Mobile"
+                                Background="Transparent" BorderThickness="0" Padding="0" Margin="5,0"
+                                HorizontalContentAlignment="Stretch" Cursor="Hand" AutomationProperties.Name="Show Mobile ideas">
+                            <Border BorderThickness="1" CornerRadius="12" Padding="18">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="White" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMobileIdeaPoolFilterSelected}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="Mobile" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding MobileIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                        <Button Command="{Binding SelectIdeaPoolFilterCommand}" CommandParameter="Other"
+                                Background="Transparent" BorderThickness="0" Padding="0" Margin="10,0,0,0"
+                                HorizontalContentAlignment="Stretch" Cursor="Hand" AutomationProperties.Name="Show Other ideas">
+                            <Border BorderThickness="1" CornerRadius="12" Padding="18">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="White" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsOtherIdeaPoolFilterSelected}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="Other" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding OtherIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Button>
                     </UniformGrid>
 
                     <Grid Grid.Row="2">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Grid Margin="2,0,0,9">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="280" />
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Search ideas" FontWeight="SemiBold" FontSize="11" Margin="2,0,0,5" />
+                                <TextBox Style="{StaticResource InputStyle}" Text="{Binding IdeaPoolSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Search names, platforms, genres, topics, mechanics, features, and art styles"
+                                         AutomationProperties.Name="Search saved ideas" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Development stage" FontWeight="SemiBold" FontSize="11" Margin="2,0,0,5" />
+                                <ComboBox ItemsSource="{Binding IdeaPoolStageFilters}"
+                                          SelectedItem="{Binding SelectedIdeaPoolStageFilter}"
+                                          Height="42" Padding="10,5" FontSize="14"
+                                          AutomationProperties.Name="Filter by development stage" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Content="Clear filters" Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding ClearIdeaPoolFiltersCommand}" Padding="14,9" Margin="10,0,0,0"
+                                    VerticalAlignment="Bottom" />
+                            <Button Grid.Column="3" Command="{Binding SelectIdeaPoolFilterCommand}" CommandParameter="All"
+                                    Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                                    HorizontalAlignment="Right" VerticalAlignment="Bottom" AutomationProperties.Name="Show all pools">
+                                <Border Background="{StaticResource AccentSoftBrush}" CornerRadius="9" Padding="14,9">
+                                    <TextBlock Text="{Binding SelectedIdeaPoolFilterLabel}" Foreground="{StaticResource AccentBrush}"
+                                               FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                                </Border>
+                            </Button>
+                        </Grid>
+                        <Grid Grid.Row="1" Margin="2,10,0,9">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -571,18 +652,21 @@
                                 <Button Content="Edit" Style="{StaticResource SecondaryButtonStyle}"
                                         IsEnabled="{Binding CanEditSelectedIdea}" Click="EditIdea_Click"
                                         Padding="15,8" Margin="0,0,8,0" AutomationProperties.Name="Edit selected idea" />
-                                <Button Content="Export All XLSX" Style="{StaticResource SecondaryButtonStyle}"
-                                        IsEnabled="{Binding CanExportAllIdeasWorkbook}" Click="ExportAllIdeasWorkbook_Click"
-                                        Padding="15,8" Margin="0,0,8,0" AutomationProperties.Name="Export all ideas as Excel workbook" />
                                 <Button Content="Export PDF" Style="{StaticResource SecondaryButtonStyle}"
                                         IsEnabled="{Binding CanExportSelectedIdeaPdf}" Click="ExportIdeaPdf_Click"
                                         Padding="15,8" Margin="0,0,8,0" AutomationProperties.Name="Export selected idea as PDF" />
+                                <Button Content="Export Filtered XLSX" Style="{StaticResource SecondaryButtonStyle}"
+                                        IsEnabled="{Binding CanExportFilteredIdeasWorkbook}" Click="ExportFilteredIdeasWorkbook_Click"
+                                        Padding="15,8" Margin="0,0,8,0" AutomationProperties.Name="Export filtered ideas as Excel workbook" />
+                                <Button Content="Export All XLSX" Style="{StaticResource SecondaryButtonStyle}"
+                                        IsEnabled="{Binding CanExportAllIdeasWorkbook}" Click="ExportAllIdeasWorkbook_Click"
+                                        Padding="15,8" Margin="0,0,8,0" AutomationProperties.Name="Export all ideas as Excel workbook" />
                                 <Button Content="Delete" Style="{StaticResource DangerButtonStyle}"
                                         IsEnabled="{Binding CanDeleteSelectedIdea}" Click="DeleteIdea_Click"
                                         Padding="15,8" AutomationProperties.Name="Delete selected idea" />
                             </StackPanel>
                         </Grid>
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding SavedIdeas}"
+                        <DataGrid Grid.Row="2" ItemsSource="{Binding SavedIdeasView}"
                                   SelectedItem="{Binding SelectedSavedIdea, Mode=TwoWay}"
                                   SelectionMode="Single" SelectionUnit="FullRow"
                                   AutoGenerateColumns="False" IsReadOnly="True"

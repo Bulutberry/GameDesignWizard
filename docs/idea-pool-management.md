@@ -2,6 +2,14 @@
 
 The Idea Pool is the local index of saved game ideas. Select one row to enable editing, PDF export, and deletion. Complete workbook export remains available whenever the pool contains at least one idea.
 
+## Find and filter ideas
+
+Use the search field to match an idea's name, platform, genre, subgenre, topics, mechanics, features, art styles, development duration, team size, or stage. Search is case-insensitive.
+
+Choose a PC, Mobile, or Other summary card to restrict the table to that fixed pool. The selected card receives an accent background and border. Choose the **VIEW** control to return to all pools while keeping the current search and stage filter, or choose **Clear filters** to reset search, stage, and pool together.
+
+The development-stage list combines with search and pool selection. The result message reports how many saved ideas remain visible. If the selected row leaves the view, its row actions are cleared.
+
 ## Edit an idea
 
 1. Open **Idea Pool** and select one row.

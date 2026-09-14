@@ -5,10 +5,12 @@ GameDesignWizard exports the complete saved idea pool as one `.xlsx` workbook. T
 ## Export workflow
 
 1. Open **Idea Pool**.
-2. Choose **Export All XLSX**.
+2. Choose **Export All XLSX**, or apply Idea Pool filters and choose **Export Filtered XLSX**.
 3. Select a destination and file name.
 
-The command is available when at least one idea is saved. It always includes every saved idea across all pools, regardless of the currently visible group or selected row.
+**Export All XLSX** is available when at least one idea is saved. It always includes every saved idea across all pools, regardless of the current search, stage, pool, table sorting, or selected row.
+
+**Export Filtered XLSX** includes exactly the rows currently shown by the combined search, development-stage, and pool filters, in their current table order. It is disabled when the current filters have no results.
 
 ## Workbook sheets
 

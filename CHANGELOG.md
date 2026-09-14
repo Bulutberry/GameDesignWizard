@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.0
+
+- Make the PC, Mobile, and Other summary cards clickable pool filters with a visible selected state.
+- Add case-insensitive Idea Pool search across names, platforms, genres, subgenres, topics, mechanics, features, art styles, production scope, and stage.
+- Add a development-stage filter that combines with the pool and search filters.
+- Show visible and total result counts, clear a selection when it leaves the filtered view, and restore every filter with one action.
+- Add Export Filtered XLSX with the exact ideas and current view order shown in the table.
+- Keep Export All XLSX independent from active filters.
+- Disable filtered export when no ideas match while leaving other applicable actions consistent.
+
 ## 0.13.0
 
 - Add Edit and Delete actions for the selected Idea Pool row.
