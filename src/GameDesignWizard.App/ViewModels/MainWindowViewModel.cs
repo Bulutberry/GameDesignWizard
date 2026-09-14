@@ -13,6 +13,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly ICatalogFileReader? _catalogFileReader;
     private readonly IGameIdeaRepository? _gameIdeaRepository;
     private readonly IManagedMediaStorage? _managedMediaStorage;
+    private readonly IGameIdeaPdfExporter? _gameIdeaPdfExporter;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private readonly List<string> _removedManagedMediaPaths = [];
     private AppPage _currentPage = AppPage.Home;
@@ -30,25 +31,28 @@ public sealed class MainWindowViewModel : ObservableObject
     private CatalogOptionViewModel? _selectedTeamSize;
     private string _gameName = "NewGame";
     private string _overviewEnglish = string.Empty;
+    private GameIdeaListItemViewModel? _selectedSavedIdea;
+    private string? _ideaPoolActionMessage;
     private readonly Guid _draftIdeaId = Guid.NewGuid();
     private readonly DateTime _draftCreatedAtUtc = DateTime.UtcNow;
     private bool _hasSavedIdea;
     private bool _isInitialized;
+    private bool _isExportingPdf;
 
     public MainWindowViewModel()
-        : this(null, null, null, null)
+        : this(null, null, null, null, null)
     {
     }
 
     public MainWindowViewModel(ICatalogRepository? catalogRepository)
-        : this(catalogRepository, null, null, null)
+        : this(catalogRepository, null, null, null, null)
     {
     }
 
     public MainWindowViewModel(
         ICatalogRepository? catalogRepository,
         ICatalogFileReader? catalogFileReader)
-        : this(catalogRepository, catalogFileReader, null, null)
+        : this(catalogRepository, catalogFileReader, null, null, null)
     {
     }
 
@@ -56,7 +60,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ICatalogRepository? catalogRepository,
         ICatalogFileReader? catalogFileReader,
         IGameIdeaRepository? gameIdeaRepository)
-        : this(catalogRepository, catalogFileReader, gameIdeaRepository, null)
+        : this(catalogRepository, catalogFileReader, gameIdeaRepository, null, null)
     {
     }
 
@@ -65,11 +69,22 @@ public sealed class MainWindowViewModel : ObservableObject
         ICatalogFileReader? catalogFileReader,
         IGameIdeaRepository? gameIdeaRepository,
         IManagedMediaStorage? managedMediaStorage)
+        : this(catalogRepository, catalogFileReader, gameIdeaRepository, managedMediaStorage, null)
+    {
+    }
+
+    public MainWindowViewModel(
+        ICatalogRepository? catalogRepository,
+        ICatalogFileReader? catalogFileReader,
+        IGameIdeaRepository? gameIdeaRepository,
+        IManagedMediaStorage? managedMediaStorage,
+        IGameIdeaPdfExporter? gameIdeaPdfExporter)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
         _gameIdeaRepository = gameIdeaRepository;
         _managedMediaStorage = managedMediaStorage;
+        _gameIdeaPdfExporter = gameIdeaPdfExporter;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -166,6 +181,25 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<GddSectionDraftViewModel> GddSections { get; }
 
     public ObservableCollection<GameIdeaListItemViewModel> SavedIdeas { get; }
+
+    public GameIdeaListItemViewModel? SelectedSavedIdea
+    {
+        get => _selectedSavedIdea;
+        set
+        {
+            if (SetProperty(ref _selectedSavedIdea, value))
+            {
+                _ideaPoolActionMessage = null;
+                OnPropertyChanged(nameof(HasSelectedSavedIdea));
+                OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+                OnPropertyChanged(nameof(IdeaPoolMessage));
+            }
+        }
+    }
+
+    public bool HasSelectedSavedIdea => SelectedSavedIdea is not null;
+
+    public bool CanExportSelectedIdeaPdf => HasSelectedSavedIdea && !_isExportingPdf;
 
     public ObservableCollection<DraftMediaAttachmentViewModel> MediaAttachments { get; }
 
@@ -412,9 +446,9 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public int OtherIdeaCount => SavedIdeas.Count(idea => idea.PoolGroup == PlatformPoolGroup.Other);
 
-    public string IdeaPoolMessage => SavedIdeas.Count == 0
+    public string IdeaPoolMessage => _ideaPoolActionMessage ?? (SavedIdeas.Count == 0
         ? "No saved ideas yet. Complete the wizard to create the first one."
-        : $"{SavedIdeas.Count} saved idea(s), ordered by the most recent update.";
+        : $"{SavedIdeas.Count} saved idea(s), ordered by the most recent update.");
 
     public string CatalogHeading => $"Manage {SelectedCatalogCategory.DisplayName.ToLowerInvariant()}";
 
@@ -1089,6 +1123,55 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    public async Task ExportSelectedIdeaPdfAsync(
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (SelectedSavedIdea is null)
+        {
+            SetIdeaPoolActionMessage("Select an idea before exporting a PDF.");
+            return;
+        }
+
+        if (_gameIdeaRepository is null || _gameIdeaPdfExporter is null)
+        {
+            SetIdeaPoolActionMessage("PDF export is unavailable in preview mode.");
+            return;
+        }
+
+        if (_isExportingPdf)
+        {
+            return;
+        }
+
+        _isExportingPdf = true;
+        OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+        try
+        {
+            var idea = await _gameIdeaRepository.GetByIdAsync(SelectedSavedIdea.Id, cancellationToken)
+                ?? throw new InvalidOperationException("The selected idea could not be found.");
+            await _gameIdeaPdfExporter.ExportAsync(idea, destinationPath, cancellationToken);
+            SetIdeaPoolActionMessage($"{idea.NameEnglish} was exported to {Path.GetFileName(destinationPath)}.");
+        }
+        catch (OperationCanceledException)
+        {
+            SetIdeaPoolActionMessage("PDF export was canceled.");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            SetIdeaPoolActionMessage(exception.Message);
+        }
+        catch (Exception)
+        {
+            SetIdeaPoolActionMessage("The PDF could not be exported. Try another location.");
+        }
+        finally
+        {
+            _isExportingPdf = false;
+            OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+        }
+    }
+
     public void AddMediaFiles(IEnumerable<string> filePaths)
     {
         if (_managedMediaStorage is null)
@@ -1202,6 +1285,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        var selectedIdeaId = SelectedSavedIdea?.Id;
         var ideas = await _gameIdeaRepository.GetAllAsync(cancellationToken);
         SavedIdeas.Clear();
         foreach (var idea in ideas)
@@ -1209,9 +1293,19 @@ public sealed class MainWindowViewModel : ObservableObject
             SavedIdeas.Add(new GameIdeaListItemViewModel(idea));
         }
 
+        SelectedSavedIdea = selectedIdeaId is null
+            ? null
+            : SavedIdeas.FirstOrDefault(idea => idea.Id == selectedIdeaId);
+
         OnPropertyChanged(nameof(PcIdeaCount));
         OnPropertyChanged(nameof(MobileIdeaCount));
         OnPropertyChanged(nameof(OtherIdeaCount));
+        OnPropertyChanged(nameof(IdeaPoolMessage));
+    }
+
+    private void SetIdeaPoolActionMessage(string message)
+    {
+        _ideaPoolActionMessage = message;
         OnPropertyChanged(nameof(IdeaPoolMessage));
     }
 

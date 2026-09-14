@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using GameDesignWizard.App.ViewModels;
 using Microsoft.Win32;
@@ -73,5 +74,35 @@ public partial class MainWindow : Window
         {
             viewModel.AddMediaFiles(fileDialog.FileNames);
         }
+    }
+
+    private async void ExportIdeaPdf_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel { SelectedSavedIdea: { } selectedIdea } viewModel)
+        {
+            return;
+        }
+
+        var fileDialog = new SaveFileDialog
+        {
+            Title = "Export game design document",
+            Filter = "PDF document (*.pdf)|*.pdf",
+            DefaultExt = ".pdf",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = CreateSafeFileName($"{selectedIdea.Name}-GDD.pdf")
+        };
+        if (fileDialog.ShowDialog(this) == true)
+        {
+            await viewModel.ExportSelectedIdeaPdfAsync(fileDialog.FileName);
+        }
+    }
+
+    private static string CreateSafeFileName(string value)
+    {
+        var invalidCharacters = Path.GetInvalidFileNameChars();
+        var safeName = new string(value.Select(character =>
+            invalidCharacters.Contains(character) ? '_' : character).ToArray());
+        return string.IsNullOrWhiteSpace(safeName) ? "Game-Idea-GDD.pdf" : safeName;
     }
 }

@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.10.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.11.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -554,8 +554,21 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <TextBlock Text="{Binding IdeaPoolMessage}" Foreground="{StaticResource MutedInkBrush}" FontSize="12" Margin="2,0,0,9" />
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding SavedIdeas}" AutoGenerateColumns="False" IsReadOnly="True"
+                        <Grid Margin="2,0,0,9">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding IdeaPoolMessage}" Foreground="{StaticResource MutedInkBrush}"
+                                       FontSize="12" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="Export PDF" Style="{StaticResource SecondaryButtonStyle}"
+                                    IsEnabled="{Binding CanExportSelectedIdeaPdf}" Click="ExportIdeaPdf_Click"
+                                    Padding="15,8" AutomationProperties.Name="Export selected idea as PDF" />
+                        </Grid>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding SavedIdeas}"
+                                  SelectedItem="{Binding SelectedSavedIdea, Mode=TwoWay}"
+                                  SelectionMode="Single" SelectionUnit="FullRow"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
                                   CanUserAddRows="False" CanUserDeleteRows="False" GridLinesVisibility="Horizontal"
                                   HeadersVisibility="Column" Background="White" BorderBrush="{StaticResource BorderBrush}"
                                   BorderThickness="1" RowHeight="44" ColumnHeaderHeight="38">

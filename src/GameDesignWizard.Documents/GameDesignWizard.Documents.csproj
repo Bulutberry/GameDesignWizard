@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../GameDesignWizard.Core/GameDesignWizard.Core.csproj" />
+    <PackageReference Include="PDFsharp-MigraDoc-WPF" Version="6.2.4" />
+  </ItemGroup>
+</Project>

@@ -10,4 +10,5 @@ obj/
 *.db-shm
 *.db-wal
 artifacts/
+output/
 models/

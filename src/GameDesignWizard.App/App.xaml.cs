@@ -1,5 +1,6 @@
 using System.Windows;
 using GameDesignWizard.App.ViewModels;
+using GameDesignWizard.Documents.Pdf;
 using GameDesignWizard.Infrastructure.Catalog;
 using GameDesignWizard.Infrastructure.Data;
 using GameDesignWizard.Infrastructure.Ideas;
@@ -18,11 +19,13 @@ public partial class App : Application
             var repository = new SqliteCatalogRepository(contextFactory);
             var ideaRepository = new SqliteGameIdeaRepository(contextFactory);
             var mediaStorage = new ManagedMediaStorage();
+            var pdfExporter = new MigraDocGameIdeaPdfExporter(mediaStorage);
             var viewModel = new MainWindowViewModel(
                 repository,
                 new CatalogFileReader(),
                 ideaRepository,
-                mediaStorage);
+                mediaStorage,
+                pdfExporter);
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);

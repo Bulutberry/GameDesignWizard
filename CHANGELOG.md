@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.0
+
+- Add selected-idea PDF export to the Idea Pool.
+- Render A4 game design documents with a title, metadata table, overview, populated GDD sections, and page numbers.
+- Include managed images and captions while keeping audio attachments as explicit filename and caption notes.
+- Render reference URLs as readable, clickable links.
+- Bound image dimensions to the printable page area and identify unavailable image files without failing the whole export.
+- Write PDF output to a temporary file and replace the chosen destination only after rendering succeeds.
+- Add the Windows-specific document project with PDFsharp and MigraDoc 6.2.4.
+
 ## 0.10.0
 
 - Add image and audio attachments with optional English captions to the final wizard step.

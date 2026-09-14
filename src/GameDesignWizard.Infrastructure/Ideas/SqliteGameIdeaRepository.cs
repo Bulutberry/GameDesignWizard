@@ -59,6 +59,23 @@ public sealed class SqliteGameIdeaRepository(AppDbContextFactory contextFactory)
             .ToArray();
     }
 
+    public async Task<GameIdeaDocument?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.CreateDbContext();
+        await context.Database.MigrateAsync(cancellationToken);
+        var document = await context.GameIdeas
+            .AsNoTracking()
+            .Where(idea => idea.Id == id)
+            .Select(idea => idea.DocumentJson)
+            .SingleOrDefaultAsync(cancellationToken);
+        return document is null
+            ? null
+            : JsonSerializer.Deserialize<GameIdeaDocument>(document, SerializerOptions)
+              ?? throw new InvalidOperationException("A saved idea document is invalid.");
+    }
+
     private static void Validate(GameIdeaDocument idea)
     {
         if (idea.Id == Guid.Empty)
