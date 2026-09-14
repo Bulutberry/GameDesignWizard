@@ -58,6 +58,7 @@ public sealed class MainWindowViewModel : ObservableObject
         GenreChoices = [];
         Genres = [];
         AvailableSubgenres = [];
+        References = [];
         TopicPicker = new DualListPickerViewModel("Topics", CatalogCategory.Topic);
         FeaturePicker = new DualListPickerViewModel("Features", CatalogCategory.Feature);
         ArtStylePicker = new DualListPickerViewModel("Art styles", CatalogCategory.ArtStyle);
@@ -66,6 +67,7 @@ public sealed class MainWindowViewModel : ObservableObject
         FeaturePicker.SelectionChanged += (_, _) => PickerSelectionChanged(FeaturePicker);
         ArtStylePicker.SelectionChanged += (_, _) => PickerSelectionChanged(ArtStylePicker);
         MechanicsPicker.SelectionChanged += (_, _) => PickerSelectionChanged(MechanicsPicker);
+        AddReference();
         _settingsMessage = catalogRepository is null
             ? "Catalog changes appear immediately in the wizard."
             : "Catalog changes are saved automatically on this device.";
@@ -86,6 +88,8 @@ public sealed class MainWindowViewModel : ObservableObject
         SelectSubgenreCommand = new RelayCommand(SelectSubgenre);
         AddTopicCommand = TopicPicker.AddCommand;
         RemoveTopicCommand = TopicPicker.RemoveCommand;
+        AddReferenceCommand = new RelayCommand(_ => AddReference());
+        RemoveReferenceCommand = new RelayCommand(RemoveReference);
         WizardNextCommand = new RelayCommand(_ => MoveWizardNext());
         WizardPreviousCommand = new RelayCommand(_ => MoveWizardPrevious());
     }
@@ -103,6 +107,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<CatalogOptionViewModel> Genres { get; }
 
     public ObservableCollection<CatalogOptionViewModel> AvailableSubgenres { get; }
+
+    public ObservableCollection<GameReferenceViewModel> References { get; }
 
     public ObservableCollection<CatalogOptionViewModel> AvailableTopics => TopicPicker.AvailableOptions;
 
@@ -137,6 +143,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public ICommand AddTopicCommand { get; }
 
     public ICommand RemoveTopicCommand { get; }
+
+    public ICommand AddReferenceCommand { get; }
+
+    public ICommand RemoveReferenceCommand { get; }
 
     public ICommand WizardNextCommand { get; }
 
@@ -237,6 +247,7 @@ public sealed class MainWindowViewModel : ObservableObject
         2 => "Choose genre, subgenre, and topics",
         3 => "Choose features and art styles",
         4 => "Choose gameplay mechanics",
+        5 => "Add design references",
         _ => "Create your game idea"
     };
 
@@ -246,6 +257,7 @@ public sealed class MainWindowViewModel : ObservableObject
         2 => "Choose one genre, an optional related subgenre, and any number of topics.",
         3 => "Choose any number of features and art styles. Double-click or press Enter to move an item.",
         4 => "Choose any number of mechanics. Double-click or press Enter to move an item.",
+        5 => "Add useful links and notes. Empty rows will be ignored when the idea is saved.",
         _ => "Complete this step or leave it empty and continue."
     };
 
@@ -257,6 +269,7 @@ public sealed class MainWindowViewModel : ObservableObject
         2 => "Continue to Step 3",
         3 => "Continue to Step 4",
         4 => "Continue to Step 5",
+        5 => "Continue to Step 6",
         _ => "Continue"
     };
 
@@ -268,6 +281,7 @@ public sealed class MainWindowViewModel : ObservableObject
         2 => $"Genre: {SelectedGenre?.Name ?? "None"} · Subgenre: {SelectedSubgenre?.Name ?? "None"} · Topics: {SelectedTopics.Count}",
         3 => $"Features: {FeaturePicker.SelectedOptions.Count} · Art styles: {ArtStylePicker.SelectedOptions.Count}",
         4 => $"Mechanics: {MechanicsPicker.SelectedOptions.Count}",
+        5 => $"References: {References.Count(reference => !reference.IsBlank)}",
         _ => string.Empty
     };
 
@@ -279,11 +293,15 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public Visibility WizardStepFourVisibility => _wizardStep == 4 ? Visibility.Visible : Visibility.Collapsed;
 
+    public Visibility WizardStepFiveVisibility => _wizardStep == 5 ? Visibility.Visible : Visibility.Collapsed;
+
     public string WizardSecondProgressColor => _wizardStep >= 2 ? "#6C5CE7" : "#E1E3EC";
 
     public string WizardThirdProgressColor => _wizardStep >= 3 ? "#6C5CE7" : "#E1E3EC";
 
     public string WizardFourthProgressColor => _wizardStep >= 4 ? "#6C5CE7" : "#E1E3EC";
+
+    public string WizardFifthProgressColor => _wizardStep >= 5 ? "#6C5CE7" : "#E1E3EC";
 
     public string CatalogHeading => $"Manage {SelectedCatalogCategory.DisplayName.ToLowerInvariant()}";
 
@@ -735,7 +753,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void MoveWizardNext()
     {
-        if (_wizardStep < 4)
+        if (_wizardStep < 5)
         {
             _wizardStep++;
             WizardMessage = _wizardStep switch
@@ -743,13 +761,20 @@ public sealed class MainWindowViewModel : ObservableObject
                 2 => "Choose one genre, an optional subgenre, and any number of topics.",
                 3 => "Choose features and art styles, or leave either list empty.",
                 4 => "Choose gameplay mechanics, or leave this list empty.",
+                5 => "Add links and notes, or leave the reference list empty.",
                 _ => string.Empty
             };
             NotifyWizardStepChanged();
             return;
         }
 
-        WizardMessage = "Step 5 will be added after this wizard prototype is approved.";
+        if (References.Any(reference => reference.HasValidationError))
+        {
+            WizardMessage = "Fix the highlighted reference URLs before continuing.";
+            return;
+        }
+
+        WizardMessage = "Step 6 will be added after this references prototype is approved.";
     }
 
     private void MoveWizardPrevious()
@@ -766,6 +791,7 @@ public sealed class MainWindowViewModel : ObservableObject
             1 => "Select a platform or leave the step empty.",
             2 => "Choose one genre, an optional subgenre, and any number of topics.",
             3 => "Choose features and art styles, or leave either list empty.",
+            4 => "Choose gameplay mechanics, or leave this list empty.",
             _ => string.Empty
         };
         NotifyWizardStepChanged();
@@ -783,10 +809,39 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(WizardStepTwoVisibility));
         OnPropertyChanged(nameof(WizardStepThreeVisibility));
         OnPropertyChanged(nameof(WizardStepFourVisibility));
+        OnPropertyChanged(nameof(WizardStepFiveVisibility));
         OnPropertyChanged(nameof(WizardSecondProgressColor));
         OnPropertyChanged(nameof(WizardThirdProgressColor));
         OnPropertyChanged(nameof(WizardFourthProgressColor));
+        OnPropertyChanged(nameof(WizardFifthProgressColor));
     }
+
+    private void AddReference()
+    {
+        var reference = new GameReferenceViewModel();
+        reference.Changed += ReferenceChanged;
+        References.Add(reference);
+        OnPropertyChanged(nameof(WizardSelectionSummary));
+        if (_wizardStep == 5)
+        {
+            WizardMessage = "A new reference row was added.";
+        }
+    }
+
+    private void RemoveReference(object? parameter)
+    {
+        if (parameter is not GameReferenceViewModel reference || !References.Remove(reference))
+        {
+            return;
+        }
+
+        reference.Changed -= ReferenceChanged;
+        OnPropertyChanged(nameof(WizardSelectionSummary));
+        WizardMessage = "The reference row was removed.";
+    }
+
+    private void ReferenceChanged(object? sender, EventArgs eventArgs) =>
+        OnPropertyChanged(nameof(WizardSelectionSummary));
 
     private void PickerSelectionChanged(DualListPickerViewModel picker)
     {

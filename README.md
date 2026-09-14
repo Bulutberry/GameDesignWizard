@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.7.0 validates the visual direction, persistent dynamic catalogs, the first four wizard steps, bulk catalog import, and distributable defaults:
+Prototype 0.8.0 validates the visual direction, persistent dynamic catalogs, the first five wizard steps, bulk catalog import, and distributable defaults:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -12,6 +12,7 @@ Prototype 0.7.0 validates the visual direction, persistent dynamic catalogs, the
 - Searchable, virtualized topic transfer lists designed for hundreds of entries
 - Reusable topic, feature, art-style, and mechanic transfer lists
 - Double-click or Enter keyboard transfer between available and selected options
+- Repeatable reference URL and note rows with inline validation
 - Fixed PC, Mobile, and Other idea-pool groups
 - Settings management for platforms, genres, subgenres, topics, mechanics, features, art styles, development durations, and team sizes
 - SQLite-backed add, archive, and restore behavior that survives app restarts

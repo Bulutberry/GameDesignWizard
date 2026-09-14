@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.7.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.8.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -166,7 +166,7 @@
                     <Border Grid.Column="1" Height="5" Background="{Binding WizardSecondProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="2" Height="5" Background="{Binding WizardThirdProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="3" Height="5" Background="{Binding WizardFourthProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
-                    <Border Grid.Column="4" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
+                    <Border Grid.Column="4" Height="5" Background="{Binding WizardFifthProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="5" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
                 </Grid>
 
@@ -292,6 +292,79 @@
                               Visibility="{Binding WizardStepFourVisibility}">
                     <controls:DualListPicker DataContext="{Binding MechanicsPicker}"
                                              Width="760" Height="370" HorizontalAlignment="Center" />
+                </ScrollViewer>
+
+                <ScrollViewer Grid.Row="2" Margin="0,28,0,20" VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding WizardStepFiveVisibility}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Links and notes" FontFamily="Segoe UI Semibold" FontSize="18" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="Add reference" Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding AddReferenceCommand}" Padding="16,9" />
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding References}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                            CornerRadius="12" Padding="18" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="3*" />
+                                                <ColumnDefinition Width="18" />
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Reference URL" FontWeight="SemiBold" FontSize="12" Margin="2,0,0,6" />
+                                                <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
+                                                         ToolTip="https://example.com/reference"
+                                                         AutomationProperties.Name="Reference URL">
+                                                    <TextBox.Style>
+                                                        <Style TargetType="TextBox" BasedOn="{StaticResource InputStyle}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasValidationError}" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="#D95555" />
+                                                                    <Setter Property="BorderThickness" Value="2" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBox.Style>
+                                                </TextBox>
+                                                <TextBlock Text="{Binding ValidationMessage}" Foreground="#B83A3A" FontSize="11" Margin="2,5,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasValidationError}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Reference note" FontWeight="SemiBold" FontSize="12" Margin="2,0,0,6" />
+                                                <TextBox Style="{StaticResource InputStyle}" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}"
+                                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                                                         Height="72" AutomationProperties.Name="Reference note" />
+                                            </StackPanel>
+
+                                            <Button Grid.Column="3" Content="Remove" Style="{StaticResource SecondaryButtonStyle}"
+                                                    Command="{Binding DataContext.RemoveReferenceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" Padding="14,9" Margin="14,23,0,0" VerticalAlignment="Top" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </ScrollViewer>
 
                 <Grid Grid.Row="3">

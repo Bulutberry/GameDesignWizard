@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+
+- Add wizard step 5 with repeatable reference URL and note rows.
+- Allow references to be added and removed without losing earlier wizard selections.
+- Validate nonblank URLs inline and accept complete HTTP or HTTPS links.
+- Keep incomplete reference rows in the draft while preventing progression with malformed URLs.
+- Ignore completely blank reference rows in the wizard summary and future saved idea data.
+
 ## 0.7.0
 
 - Add wizard step 4 for multi-selection of gameplay mechanics.
