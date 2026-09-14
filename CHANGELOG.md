@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0
+
+- Add complete XLSX export to the Idea Pool without requiring a row selection.
+- Include summary sheets for all ideas and the fixed PC, Mobile, and Other pool groups.
+- Preserve the actual platform label for ideas routed to Other.
+- Add normalized sheets for selections, GDD content, references, and managed media metadata.
+- Split long GDD text safely across ordered cells so content beyond Excel's cell limit is not lost.
+- Freeze headers, add filters, hide gridlines, and apply restrained workbook formatting for practical review.
+- Write workbook output to a temporary file and replace the chosen destination only after generation succeeds.
+
 ## 0.11.0
 
 - Add selected-idea PDF export to the Idea Pool.

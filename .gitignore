@@ -11,4 +11,5 @@ obj/
 *.db-wal
 artifacts/
 output/
+outputs/
 models/

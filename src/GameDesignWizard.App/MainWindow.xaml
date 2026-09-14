@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.11.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.12.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -561,9 +561,14 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding IdeaPoolMessage}" Foreground="{StaticResource MutedInkBrush}"
                                        FontSize="12" VerticalAlignment="Center" />
-                            <Button Grid.Column="1" Content="Export PDF" Style="{StaticResource SecondaryButtonStyle}"
-                                    IsEnabled="{Binding CanExportSelectedIdeaPdf}" Click="ExportIdeaPdf_Click"
-                                    Padding="15,8" AutomationProperties.Name="Export selected idea as PDF" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="Export All XLSX" Style="{StaticResource SecondaryButtonStyle}"
+                                        IsEnabled="{Binding CanExportAllIdeasWorkbook}" Click="ExportAllIdeasWorkbook_Click"
+                                        Padding="15,8" Margin="0,0,8,0" AutomationProperties.Name="Export all ideas as Excel workbook" />
+                                <Button Content="Export PDF" Style="{StaticResource SecondaryButtonStyle}"
+                                        IsEnabled="{Binding CanExportSelectedIdeaPdf}" Click="ExportIdeaPdf_Click"
+                                        Padding="15,8" AutomationProperties.Name="Export selected idea as PDF" />
+                            </StackPanel>
                         </Grid>
                         <DataGrid Grid.Row="1" ItemsSource="{Binding SavedIdeas}"
                                   SelectedItem="{Binding SelectedSavedIdea, Mode=TwoWay}"

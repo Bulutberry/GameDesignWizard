@@ -98,6 +98,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ExportAllIdeasWorkbook_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var fileDialog = new SaveFileDialog
+        {
+            Title = "Export all game ideas",
+            Filter = "Excel workbook (*.xlsx)|*.xlsx",
+            DefaultExt = ".xlsx",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = "GameDesignWizard-Idea-Pool.xlsx"
+        };
+        if (fileDialog.ShowDialog(this) == true)
+        {
+            await viewModel.ExportAllIdeasWorkbookAsync(fileDialog.FileName);
+        }
+    }
+
     private static string CreateSafeFileName(string value)
     {
         var invalidCharacters = Path.GetInvalidFileNameChars();

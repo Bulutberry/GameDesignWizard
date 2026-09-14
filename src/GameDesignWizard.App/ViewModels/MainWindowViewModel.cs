@@ -14,6 +14,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IGameIdeaRepository? _gameIdeaRepository;
     private readonly IManagedMediaStorage? _managedMediaStorage;
     private readonly IGameIdeaPdfExporter? _gameIdeaPdfExporter;
+    private readonly IGameIdeaWorkbookExporter? _gameIdeaWorkbookExporter;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private readonly List<string> _removedManagedMediaPaths = [];
     private AppPage _currentPage = AppPage.Home;
@@ -38,21 +39,22 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _hasSavedIdea;
     private bool _isInitialized;
     private bool _isExportingPdf;
+    private bool _isExportingWorkbook;
 
     public MainWindowViewModel()
-        : this(null, null, null, null, null)
+        : this(null, null, null, null, null, null)
     {
     }
 
     public MainWindowViewModel(ICatalogRepository? catalogRepository)
-        : this(catalogRepository, null, null, null, null)
+        : this(catalogRepository, null, null, null, null, null)
     {
     }
 
     public MainWindowViewModel(
         ICatalogRepository? catalogRepository,
         ICatalogFileReader? catalogFileReader)
-        : this(catalogRepository, catalogFileReader, null, null, null)
+        : this(catalogRepository, catalogFileReader, null, null, null, null)
     {
     }
 
@@ -60,7 +62,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ICatalogRepository? catalogRepository,
         ICatalogFileReader? catalogFileReader,
         IGameIdeaRepository? gameIdeaRepository)
-        : this(catalogRepository, catalogFileReader, gameIdeaRepository, null, null)
+        : this(catalogRepository, catalogFileReader, gameIdeaRepository, null, null, null)
     {
     }
 
@@ -69,7 +71,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ICatalogFileReader? catalogFileReader,
         IGameIdeaRepository? gameIdeaRepository,
         IManagedMediaStorage? managedMediaStorage)
-        : this(catalogRepository, catalogFileReader, gameIdeaRepository, managedMediaStorage, null)
+        : this(catalogRepository, catalogFileReader, gameIdeaRepository, managedMediaStorage, null, null)
     {
     }
 
@@ -79,12 +81,24 @@ public sealed class MainWindowViewModel : ObservableObject
         IGameIdeaRepository? gameIdeaRepository,
         IManagedMediaStorage? managedMediaStorage,
         IGameIdeaPdfExporter? gameIdeaPdfExporter)
+        : this(catalogRepository, catalogFileReader, gameIdeaRepository, managedMediaStorage, gameIdeaPdfExporter, null)
+    {
+    }
+
+    public MainWindowViewModel(
+        ICatalogRepository? catalogRepository,
+        ICatalogFileReader? catalogFileReader,
+        IGameIdeaRepository? gameIdeaRepository,
+        IManagedMediaStorage? managedMediaStorage,
+        IGameIdeaPdfExporter? gameIdeaPdfExporter,
+        IGameIdeaWorkbookExporter? gameIdeaWorkbookExporter)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
         _gameIdeaRepository = gameIdeaRepository;
         _managedMediaStorage = managedMediaStorage;
         _gameIdeaPdfExporter = gameIdeaPdfExporter;
+        _gameIdeaWorkbookExporter = gameIdeaWorkbookExporter;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -200,6 +214,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool HasSelectedSavedIdea => SelectedSavedIdea is not null;
 
     public bool CanExportSelectedIdeaPdf => HasSelectedSavedIdea && !_isExportingPdf;
+
+    public bool CanExportAllIdeasWorkbook => SavedIdeas.Count > 0 && !_isExportingWorkbook;
 
     public ObservableCollection<DraftMediaAttachmentViewModel> MediaAttachments { get; }
 
@@ -1172,6 +1188,54 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    public async Task ExportAllIdeasWorkbookAsync(
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (_gameIdeaRepository is null || _gameIdeaWorkbookExporter is null)
+        {
+            SetIdeaPoolActionMessage("Workbook export is unavailable in preview mode.");
+            return;
+        }
+
+        if (_isExportingWorkbook)
+        {
+            return;
+        }
+
+        _isExportingWorkbook = true;
+        OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
+        try
+        {
+            var ideas = await _gameIdeaRepository.GetAllAsync(cancellationToken);
+            if (ideas.Count == 0)
+            {
+                SetIdeaPoolActionMessage("Save at least one idea before exporting the workbook.");
+                return;
+            }
+
+            await _gameIdeaWorkbookExporter.ExportAsync(ideas, destinationPath, cancellationToken);
+            SetIdeaPoolActionMessage($"{ideas.Count} idea(s) were exported to {Path.GetFileName(destinationPath)}.");
+        }
+        catch (OperationCanceledException)
+        {
+            SetIdeaPoolActionMessage("Workbook export was canceled.");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            SetIdeaPoolActionMessage(exception.Message);
+        }
+        catch (Exception)
+        {
+            SetIdeaPoolActionMessage("The workbook could not be exported. Try another location.");
+        }
+        finally
+        {
+            _isExportingWorkbook = false;
+            OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
+        }
+    }
+
     public void AddMediaFiles(IEnumerable<string> filePaths)
     {
         if (_managedMediaStorage is null)
@@ -1300,6 +1364,7 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(PcIdeaCount));
         OnPropertyChanged(nameof(MobileIdeaCount));
         OnPropertyChanged(nameof(OtherIdeaCount));
+        OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
         OnPropertyChanged(nameof(IdeaPoolMessage));
     }
 

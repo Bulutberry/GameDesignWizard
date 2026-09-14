@@ -20,12 +20,14 @@ public partial class App : Application
             var ideaRepository = new SqliteGameIdeaRepository(contextFactory);
             var mediaStorage = new ManagedMediaStorage();
             var pdfExporter = new MigraDocGameIdeaPdfExporter(mediaStorage);
+            var workbookExporter = new ClosedXmlGameIdeaWorkbookExporter();
             var viewModel = new MainWindowViewModel(
                 repository,
                 new CatalogFileReader(),
                 ideaRepository,
                 mediaStorage,
-                pdfExporter);
+                pdfExporter,
+                workbookExporter);
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);
