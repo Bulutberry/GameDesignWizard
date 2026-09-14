@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+using GameDesignWizard.Core.Ai;
 using GameDesignWizard.Core.Catalog;
 using GameDesignWizard.Core.Ideas;
 
@@ -20,6 +22,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly ICatalogFileWriter? _catalogFileWriter;
     private readonly IGddTemplatePdfExporter? _gddTemplatePdfExporter;
     private readonly IGameIdeaMarkdownExporter? _gameIdeaMarkdownExporter;
+    private readonly ILocalAiService? _localAiService;
+    private readonly ILocalAiSettingsStore? _localAiSettingsStore;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private readonly List<string> _removedManagedMediaPaths = [];
     private AppPage _currentPage = AppPage.Home;
@@ -56,6 +60,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isExportingGddTemplate;
     private bool _isExportingMarkdown;
     private string _homeMessage = "Export the printable GDD template whenever you need a blank planning document.";
+    private CancellationTokenSource? _aiGenerationCancellation;
 
     public MainWindowViewModel()
         : this(null, null, null, null, null, null)
@@ -110,7 +115,9 @@ public sealed class MainWindowViewModel : ObservableObject
         IGameIdeaWorkbookExporter? gameIdeaWorkbookExporter,
         ICatalogFileWriter? catalogFileWriter = null,
         IGddTemplatePdfExporter? gddTemplatePdfExporter = null,
-        IGameIdeaMarkdownExporter? gameIdeaMarkdownExporter = null)
+        IGameIdeaMarkdownExporter? gameIdeaMarkdownExporter = null,
+        ILocalAiService? localAiService = null,
+        ILocalAiSettingsStore? localAiSettingsStore = null)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
@@ -121,6 +128,8 @@ public sealed class MainWindowViewModel : ObservableObject
         _catalogFileWriter = catalogFileWriter;
         _gddTemplatePdfExporter = gddTemplatePdfExporter;
         _gameIdeaMarkdownExporter = gameIdeaMarkdownExporter;
+        _localAiService = localAiService;
+        _localAiSettingsStore = localAiSettingsStore;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -197,6 +206,11 @@ public sealed class MainWindowViewModel : ObservableObject
         ClearIdeaPoolFiltersCommand = new RelayCommand(_ => ClearIdeaPoolFilters());
         WizardNextCommand = new AsyncRelayCommand(_ => MoveWizardNextAsync());
         WizardPreviousCommand = new RelayCommand(_ => MoveWizardPrevious());
+        ImproveGddSectionCommand = new AsyncRelayCommand(ImproveGddSectionAsync);
+        AcceptAiProposalCommand = new RelayCommand(AcceptAiProposal);
+        DiscardAiProposalCommand = new RelayCommand(DiscardAiProposal);
+        UndoAiChangeCommand = new RelayCommand(UndoAiChange);
+        CancelAiGenerationCommand = new RelayCommand(_ => _aiGenerationCancellation?.Cancel());
     }
 
     public ObservableCollection<CatalogCategoryItemViewModel> CatalogCategories { get; }
@@ -330,6 +344,18 @@ public sealed class MainWindowViewModel : ObservableObject
     public ICommand WizardNextCommand { get; }
 
     public ICommand WizardPreviousCommand { get; }
+
+    public ICommand ImproveGddSectionCommand { get; }
+
+    public ICommand AcceptAiProposalCommand { get; }
+
+    public ICommand DiscardAiProposalCommand { get; }
+
+    public ICommand UndoAiChangeCommand { get; }
+
+    public ICommand CancelAiGenerationCommand { get; }
+
+    public bool HasLocalAiIntegration => _localAiService is not null && _localAiSettingsStore is not null;
 
     public CatalogCategoryItemViewModel SelectedCatalogCategory
     {
@@ -856,6 +882,121 @@ public sealed class MainWindowViewModel : ObservableObject
             _isExportingGddTemplate = false;
             OnPropertyChanged(nameof(CanExportGddTemplate));
         }
+    }
+
+    private async Task ImproveGddSectionAsync(object? parameter)
+    {
+        if (parameter is not GddSectionDraftViewModel section)
+        {
+            return;
+        }
+
+        if (_localAiService is null || _localAiSettingsStore is null)
+        {
+            section.AiMessage = "Local AI is unavailable in preview mode.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(section.Content))
+        {
+            section.AiMessage = "Write some section notes before asking the local model to improve them.";
+            return;
+        }
+
+        _aiGenerationCancellation?.Cancel();
+        _aiGenerationCancellation?.Dispose();
+        _aiGenerationCancellation = new CancellationTokenSource();
+        var activeCancellation = _aiGenerationCancellation;
+        section.IsAiGenerating = true;
+        section.AiMessage = "Reading the local AI configuration...";
+
+        try
+        {
+            var configuration = await _localAiSettingsStore.LoadAsync(activeCancellation.Token);
+            var request = new GddAssistRequest(
+                section.Title,
+                section.Guidance,
+                section.Content,
+                NormalizeGameName(GameName),
+                OverviewEnglish,
+                _selectedPlatform?.Name,
+                SelectedGenre?.Name,
+                SelectedSubgenre?.Name,
+                TopicPicker.SelectedOptions.Select(option => option.Name).ToArray(),
+                MechanicsPicker.SelectedOptions.Select(option => option.Name).ToArray(),
+                FeaturePicker.SelectedOptions.Select(option => option.Name).ToArray(),
+                ArtStylePicker.SelectedOptions.Select(option => option.Name).ToArray(),
+                SelectedDevelopmentDuration?.Name,
+                SelectedTeamSize?.Name);
+            var progress = new Progress<string>(message => section.AiMessage = message);
+            var result = await _localAiService.ImproveGddSectionAsync(
+                configuration,
+                request,
+                progress,
+                activeCancellation.Token);
+            var tokenSummary = result.CompletionTokens is null
+                ? string.Empty
+                : $" · {result.CompletionTokens} output tokens";
+            section.ShowAiProposal(
+                result.Text,
+                $"Generated locally in {result.Elapsed.TotalSeconds:0.0} seconds{tokenSummary}. Review before accepting.");
+        }
+        catch (OperationCanceledException)
+        {
+            section.AiMessage = "Local AI generation was canceled. Your original text is unchanged.";
+        }
+        catch (Exception exception) when (exception is InvalidOperationException
+                                           or IOException
+                                           or UnauthorizedAccessException
+                                           or TimeoutException
+                                           or System.ComponentModel.Win32Exception
+                                           or HttpRequestException)
+        {
+            section.AiMessage = exception.Message;
+        }
+        catch (Exception)
+        {
+            section.AiMessage = "The local model could not improve this section. Check Local AI Setup and try again.";
+        }
+        finally
+        {
+            section.IsAiGenerating = false;
+            if (ReferenceEquals(_aiGenerationCancellation, activeCancellation))
+            {
+                _aiGenerationCancellation.Dispose();
+                _aiGenerationCancellation = null;
+            }
+        }
+    }
+
+    private void AcceptAiProposal(object? parameter)
+    {
+        if (parameter is not GddSectionDraftViewModel section)
+        {
+            return;
+        }
+
+        section.AcceptAiProposal();
+        WizardMessage = $"The local proposal for {section.Title} was inserted into the draft.";
+    }
+
+    private static void DiscardAiProposal(object? parameter)
+    {
+        if (parameter is GddSectionDraftViewModel section)
+        {
+            section.DiscardAiProposal();
+        }
+    }
+
+    private void UndoAiChange(object? parameter)
+    {
+        if (parameter is not GddSectionDraftViewModel section)
+        {
+            return;
+        }
+
+        section.UndoAcceptedAiChange();
+        WizardMessage = $"The earlier text for {section.Title} was restored.";
     }
 
     private AppPage CurrentPage

@@ -1,21 +1,35 @@
 using System.IO;
 using System.Windows;
 using GameDesignWizard.App.ViewModels;
+using GameDesignWizard.Core.Ai;
 using Microsoft.Win32;
 
 namespace GameDesignWizard.App;
 
 public partial class MainWindow : Window
 {
+    private readonly ILocalAiSettingsStore? _localAiSettingsStore;
+
     public MainWindow()
-        : this(new MainWindowViewModel())
+        : this(new MainWindowViewModel(), null)
     {
     }
 
-    public MainWindow(MainWindowViewModel viewModel)
+    public MainWindow(MainWindowViewModel viewModel, ILocalAiSettingsStore? localAiSettingsStore = null)
     {
         InitializeComponent();
         DataContext = viewModel;
+        _localAiSettingsStore = localAiSettingsStore;
+    }
+
+    private void OpenLocalAiSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (_localAiSettingsStore is null)
+        {
+            return;
+        }
+
+        new LocalAiSettingsWindow(_localAiSettingsStore) { Owner = this }.ShowDialog();
     }
 
     private async void ImportCatalog_Click(object sender, RoutedEventArgs e)

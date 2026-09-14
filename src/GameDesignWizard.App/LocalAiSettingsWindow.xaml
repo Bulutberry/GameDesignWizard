@@ -1,0 +1,134 @@
+<Window x:Class="GameDesignWizard.App.LocalAiSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Local AI Setup"
+        Width="780" Height="710" MinWidth="680" MinHeight="620"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource CanvasBrush}">
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="LOCAL AI / TECHNICAL PREVIEW" Foreground="{StaticResource AccentBrush}"
+                       FontWeight="Bold" FontSize="11" />
+            <TextBlock Text="Connect a private local model" FontFamily="Segoe UI Semibold"
+                       FontSize="30" Margin="0,8,0,0" />
+            <TextBlock Text="The app starts llama.cpp only when you request an edit. Your GDD text stays on this computer."
+                       Foreground="{StaticResource MutedInkBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,7,0,0" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,24,0,18">
+            <StackPanel>
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="12" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="llama.cpp server executable" FontWeight="SemiBold" FontSize="12" />
+                        <Grid Margin="0,7,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Style="{StaticResource InputStyle}"
+                                     Text="{Binding RuntimePath, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="llama.cpp server path" />
+                            <Button Grid.Column="1" Content="Browse" Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="BrowseRuntime_Click" Padding="16,10" Margin="10,0,0,0" />
+                        </Grid>
+
+                        <TextBlock Text="GGUF model" FontWeight="SemiBold" FontSize="12" Margin="0,18,0,0" />
+                        <Grid Margin="0,7,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Style="{StaticResource InputStyle}"
+                                     Text="{Binding ModelPath, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="GGUF model path" />
+                            <Button Grid.Column="1" Content="Browse" Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="BrowseModel_Click" Padding="16,10" Margin="10,0,0,0" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="12" Padding="20" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Generation limits" FontFamily="Segoe UI Semibold" FontSize="17" />
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Context tokens" FontWeight="SemiBold" FontSize="11" />
+                                <TextBox Style="{StaticResource InputStyle}" Text="{Binding ContextSize, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,6,0,0" AutomationProperties.Name="Context tokens" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Maximum output" FontWeight="SemiBold" FontSize="11" />
+                                <TextBox Style="{StaticResource InputStyle}" Text="{Binding MaxOutputTokens, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,6,0,0" AutomationProperties.Name="Maximum output tokens" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="GPU layers" FontWeight="SemiBold" FontSize="11" />
+                                <TextBox Style="{StaticResource InputStyle}" Text="{Binding GpuLayers, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,6,0,0" AutomationProperties.Name="GPU layers" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="Use 0 for the CPU baseline. A value such as 99 requests maximum offload and requires a CUDA-enabled llama.cpp build."
+                                   Foreground="{StaticResource MutedInkBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,9,0,0" />
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Model startup timeout (seconds)" FontWeight="SemiBold" FontSize="11" />
+                                <TextBox Style="{StaticResource InputStyle}"
+                                         Text="{Binding StartupTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,6,0,0" AutomationProperties.Name="Model startup timeout" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Generation timeout (seconds)" FontWeight="SemiBold" FontSize="11" />
+                                <TextBox Style="{StaticResource InputStyle}"
+                                         Text="{Binding RequestTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,6,0,0" AutomationProperties.Name="Generation timeout" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F1EEFF" BorderBrush="#D9D2FF" BorderThickness="1"
+                        CornerRadius="10" Padding="16" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Recommended first test" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock Text="Qwen3-1.7B-GGUF Q8_0 is the smaller official starting point. Qwen3-4B-Instruct-2507 is the quality candidate after a compatible GGUF is selected and verified. Runtime and model licenses remain their publishers' licenses."
+                                   Foreground="{StaticResource MutedInkBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Message}" Foreground="{StaticResource MutedInkBrush}"
+                       VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,16,0" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Close" Style="{StaticResource SecondaryButtonStyle}"
+                        Click="Close_Click" Padding="18,10" Margin="0,0,9,0" />
+                <Button Content="Validate &amp; Save" Style="{StaticResource PrimaryButtonStyle}"
+                        Click="Save_Click" Padding="18,10" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

@@ -4,7 +4,7 @@ Version 2.0 | September 13, 2026 | Status: implementation in progress
 
 GameDesignWizard will be an English-first Windows desktop application for developing game ideas through a six-step wizard, organizing them in a searchable idea pool, and producing editable GDDs and polished PDF documents. Users will be able to customize every selection catalog and exchange catalogs through Excel files. An optional small local language model will help draft and improve GDD text.
 
-The selected foundation is C# with .NET 10, WPF, SQLite, and an optional LLamaSharp inference worker. Excel is the bulk editing format; SQLite is the application database; versioned JSON is the repository format for default catalogs. PDF layout remains deterministic application code.
+The selected foundation is C# with .NET 10, WPF, SQLite, and an optional isolated llama.cpp server process. Excel is the bulk editing format; SQLite is the application database; versioned JSON is the repository format for default catalogs. PDF layout remains deterministic application code.
 
 This plan incorporates the supplied `Proje-detaylari.docx` and the latest requirements in the conversation. The latest requirements take precedence: Windows only, English throughout the initial product and source code, all listed catalogs editable, and custom platforms routed to Other. It supersedes the earlier `GameDesignWizard-Proje-Plani.md`. Application implementation is in progress; model benchmarking and release packaging have not yet been performed.
 
@@ -35,7 +35,7 @@ The original document's Android target and simultaneous rollout of sixteen langu
 | PDF documents | PDFsharp and MigraDoc | MIT-licensed PDF generation and document layout. [License](https://docs.pdfsharp.net/General/License/License.html), [document example](https://docs.pdfsharp.net/MigraDoc/Topics/Start/HelloMigraDoc.html) |
 | Excel files | ClosedXML | Read and write XLSX without requiring Microsoft Excel. The library is MIT licensed. [Project documentation](https://github.com/ClosedXML/ClosedXML) |
 | Word documents | DocumentFormat.OpenXml | Create DOCX documents with real headings, paragraphs, tables, and images. [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) |
-| Local language model | LLamaSharp with a matching llama.cpp CPU backend | C# integration with local GGUF models. Pin the wrapper and native backend together. [LLamaSharp](https://github.com/SciSharp/LLamaSharp) |
+| Local language model | A pinned llama.cpp `llama-server` build controlled by the C# application | Uses local GGUF models through a documented HTTP boundary while native inference remains outside the WPF process. Pin the runtime and model pair together. [llama.cpp server](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) |
 | Images | Built-in WPF image decoding and resizing | Covers the initial PNG/JPEG media workflow without a separate image processing dependency. |
 | Audio | NAudio, initially recording WAV | Local microphone recording and playback. [NAudio](https://github.com/naudio/NAudio) |
 | Interchange and localization | System.Text.Json and UTF-8 resource files | Versioned, reviewable data and translation files. |
@@ -219,7 +219,7 @@ GameDesignWizard/
 
 Core defines contracts for storage, catalog import, export, and text assistance without WPF or model dependencies. Infrastructure and Export implement those contracts. App composes them. Do not add a generic plugin framework, web server, or vector database for this initial workflow.
 
-Run LLamaSharp in an on-demand worker process communicating through a current-user-restricted named pipe. This contains native inference crashes and allows cancellation/restart without closing the editor. Start with a single generation request at a time. The worker receives only the relevant textual context and cannot modify the database. The application validates messages and decides whether an accepted suggestion becomes saved content.
+Run `llama-server` as an on-demand child process bound to loopback, with a random per-run API key and its web interface disabled. This contains native inference crashes and allows cancellation/restart without closing the editor. Start with a single generation request at a time. The application sends only the relevant textual context and exposes no database or save operation through the inference API. The application validates responses and decides whether an accepted suggestion becomes editor content. Prototype 0.19 starts and unloads the worker for each request; benchmark a warm-worker policy before retaining model memory between requests.
 
 ## 6 GDD templates and export contracts
 
@@ -264,7 +264,7 @@ Compare Qwen3-1.7B as a smaller alternative with thinking disabled through the c
 
 These are planning estimates, not minimum requirements or measured performance. Runtime memory also includes the context/KV cache, working buffers, application, and OS. The final model revision, quantization, file sizes, checksums, RAM requirements, and expected speed are release outputs from benchmarking.
 
-Do not assume that a GGUF file for the 4B instruction variant is publisher-hosted. Verify a specific quantized artifact and its provenance or reproducibly convert the official checkpoint with a pinned llama.cpp toolchain. Conversion is a maintainer task; end users do not need Python. Use an exact tested model/runtime pair. LLamaSharp explicitly documents model and native-backend compatibility concerns. [LLamaSharp integration guidance](https://github.com/SciSharp/LLamaSharp)
+Do not assume that a GGUF file for the 4B instruction variant is publisher-hosted. Verify a specific quantized artifact and its provenance or reproducibly convert the official checkpoint with a pinned llama.cpp toolchain. Conversion is a maintainer task; end users do not need Python. Use an exact tested model/runtime pair and record its llama.cpp build compatibility.
 
 ### User interaction and generation
 

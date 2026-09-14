@@ -10,6 +10,8 @@ public static class AppDataPaths
 
     public static string MediaDirectory => Path.Combine(DataDirectory, "media");
 
+    public static string LocalAiSettingsPath => Path.Combine(DataDirectory, "local-ai-settings.json");
+
     public static string ResolveDatabasePath()
     {
         var overridePath = Environment.GetEnvironmentVariable("GDW_DATABASE_PATH");

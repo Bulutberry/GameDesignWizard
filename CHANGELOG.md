@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.19.0
+
+- Add optional local AI setup with user-selected llama.cpp server and GGUF model paths.
+- Persist validated context, output, GPU-layer, and timeout settings outside the repository.
+- Start each inference request in a hidden, isolated process bound to loopback with a random API key and no web interface.
+- Send only the active GDD section and compact wizard context to the local model.
+- Add one-section-at-a-time Improve with Local AI actions with progress, cancellation, and recoverable errors.
+- Keep original text unchanged until explicit acceptance and provide discard and one-level undo actions.
+- Document the manual runtime/model setup, privacy boundary, and remaining benchmark work.
+
 ## 0.18.0
 
 - Add selected-idea Markdown export to the Idea Pool.

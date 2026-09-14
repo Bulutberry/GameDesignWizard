@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.18.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, PDF and Markdown GDD export, complete and filtered idea-pool XLSX export, bulk catalog exchange, and distributable defaults:
+Prototype 0.19.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, PDF and Markdown GDD export, complete and filtered idea-pool XLSX export, bulk catalog exchange, distributable defaults, and the first optional local-AI editing slice:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -14,6 +14,9 @@ Prototype 0.18.0 validates the visual direction, persistent dynamic catalogs, th
 - Double-click or Enter keyboard transfer between available and selected options
 - Repeatable reference URL and note rows with inline validation
 - Game name, overview, production-scope choices, and editable GDD sections
+- Optional local llama.cpp setup using user-selected runtime and GGUF files
+- One-section-at-a-time local writing improvement with cancel, review, accept, discard, and one-level undo
+- An isolated model process bound to loopback with a per-run API key and no web interface
 - Image and audio attachments with optional captions and source-independent managed copies
 - SQLite idea saving with catalog-label snapshots and fixed PC, Mobile, or Other routing
 - A read-only saved-idea table with live PC, Mobile, and Other counts
@@ -42,6 +45,8 @@ Prototype 0.18.0 validates the visual direction, persistent dynamic catalogs, th
 - Custom-platform routing explained as Other
 
 Catalog data is stored locally in `%LOCALAPPDATA%\GameDesignWizard\game-design-wizard.db`.
+
+Local AI is optional. Its runtime and model paths are stored in `%LOCALAPPDATA%\GameDesignWizard\local-ai-settings.json`; model weights are never added to the repository or required for ordinary editing and export. Open **Local AI Setup** in Settings, then see [`docs/local-ai-setup.md`](docs/local-ai-setup.md) for the current manual setup and prototype limits.
 
 Saved image and audio attachments are copied into `%LOCALAPPDATA%\GameDesignWizard\media` and referenced by relative paths. Moving or deleting the original source file does not break the saved idea.
 

@@ -1,5 +1,6 @@
 using System.Windows;
 using GameDesignWizard.App.ViewModels;
+using GameDesignWizard.Ai;
 using GameDesignWizard.Documents.Pdf;
 using GameDesignWizard.Documents.Markdown;
 using GameDesignWizard.Infrastructure.Catalog;
@@ -22,6 +23,8 @@ public partial class App : Application
             var mediaStorage = new ManagedMediaStorage();
             var pdfExporter = new MigraDocGameIdeaPdfExporter(mediaStorage);
             var workbookExporter = new ClosedXmlGameIdeaWorkbookExporter();
+            var localAiSettingsStore = new JsonLocalAiSettingsStore(AppDataPaths.LocalAiSettingsPath);
+            var localAiService = new LlamaServerLocalAiService();
             var viewModel = new MainWindowViewModel(
                 repository,
                 new CatalogFileReader(),
@@ -31,10 +34,12 @@ public partial class App : Application
                 workbookExporter,
                 new CatalogFileWriter(),
                 pdfExporter,
-                new MarkdownGameIdeaExporter());
+                new MarkdownGameIdeaExporter(),
+                localAiService,
+                localAiSettingsStore);
             await viewModel.InitializeAsync();
 
-            MainWindow = new MainWindow(viewModel);
+            MainWindow = new MainWindow(viewModel, localAiSettingsStore);
             MainWindow.Show();
         }
         catch (Exception exception)
