@@ -28,7 +28,8 @@ public partial class App : Application
                 mediaStorage,
                 pdfExporter,
                 workbookExporter,
-                new CatalogFileWriter());
+                new CatalogFileWriter(),
+                pdfExporter);
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);

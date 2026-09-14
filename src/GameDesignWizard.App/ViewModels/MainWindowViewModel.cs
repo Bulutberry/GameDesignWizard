@@ -18,6 +18,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IGameIdeaPdfExporter? _gameIdeaPdfExporter;
     private readonly IGameIdeaWorkbookExporter? _gameIdeaWorkbookExporter;
     private readonly ICatalogFileWriter? _catalogFileWriter;
+    private readonly IGddTemplatePdfExporter? _gddTemplatePdfExporter;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private readonly List<string> _removedManagedMediaPaths = [];
     private AppPage _currentPage = AppPage.Home;
@@ -51,6 +52,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isExportingWorkbook;
     private bool _isLoadingIdea;
     private bool _isDeletingIdea;
+    private bool _isExportingGddTemplate;
+    private string _homeMessage = "Export the printable GDD template whenever you need a blank planning document.";
 
     public MainWindowViewModel()
         : this(null, null, null, null, null, null)
@@ -103,7 +106,8 @@ public sealed class MainWindowViewModel : ObservableObject
         IManagedMediaStorage? managedMediaStorage,
         IGameIdeaPdfExporter? gameIdeaPdfExporter,
         IGameIdeaWorkbookExporter? gameIdeaWorkbookExporter,
-        ICatalogFileWriter? catalogFileWriter = null)
+        ICatalogFileWriter? catalogFileWriter = null,
+        IGddTemplatePdfExporter? gddTemplatePdfExporter = null)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
@@ -112,6 +116,7 @@ public sealed class MainWindowViewModel : ObservableObject
         _gameIdeaPdfExporter = gameIdeaPdfExporter;
         _gameIdeaWorkbookExporter = gameIdeaWorkbookExporter;
         _catalogFileWriter = catalogFileWriter;
+        _gddTemplatePdfExporter = gddTemplatePdfExporter;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -641,6 +646,14 @@ public sealed class MainWindowViewModel : ObservableObject
         ? $"Showing {VisibleCatalogOptionCount} of {CatalogOptions.Count} option(s). Clear filters to change the saved order."
         : $"{CatalogOptions.Count} option(s) in saved order.";
 
+    public bool CanExportGddTemplate => _gddTemplatePdfExporter is not null && !_isExportingGddTemplate;
+
+    public string HomeMessage
+    {
+        get => _homeMessage;
+        private set => SetProperty(ref _homeMessage, value);
+    }
+
     public Visibility SubgenreParentVisibility =>
         SelectedCatalogCategory.Category == CatalogCategory.Subgenre ? Visibility.Visible : Visibility.Collapsed;
 
@@ -798,6 +811,42 @@ public sealed class MainWindowViewModel : ObservableObject
             .ToArray();
         await _catalogFileWriter.WriteAsync(filePath, category, exportOptions, cancellationToken);
         SettingsMessage = $"{exportOptions.Length} active option(s) exported to {Path.GetFileName(filePath)}.";
+    }
+
+    public async Task ExportGddTemplatePdfAsync(
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (_gddTemplatePdfExporter is null || _isExportingGddTemplate)
+        {
+            HomeMessage = "GDD template export is unavailable in preview mode.";
+            return;
+        }
+
+        _isExportingGddTemplate = true;
+        OnPropertyChanged(nameof(CanExportGddTemplate));
+        try
+        {
+            await _gddTemplatePdfExporter.ExportTemplateAsync(destinationPath, cancellationToken);
+            HomeMessage = $"The blank GDD template was exported to {Path.GetFileName(destinationPath)}.";
+        }
+        catch (OperationCanceledException)
+        {
+            HomeMessage = "GDD template export was canceled.";
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            HomeMessage = exception.Message;
+        }
+        catch (Exception)
+        {
+            HomeMessage = "The GDD template could not be exported. Try another location.";
+        }
+        finally
+        {
+            _isExportingGddTemplate = false;
+            OnPropertyChanged(nameof(CanExportGddTemplate));
+        }
     }
 
     private AppPage CurrentPage
@@ -2356,20 +2405,12 @@ public sealed class MainWindowViewModel : ObservableObject
     };
 
     private static ObservableCollection<GddSectionDraftViewModel> CreateDefaultGddSections() =>
-    [
-        new("Design Pillars", "Define the few principles that every major design decision should support.", 0),
-        new("Target Platform and Audience", "Describe the intended players, play context, and platform-specific constraints.", 1),
-        new("Genre and Themes", "Explain the genre promise, tone, themes, and emotional goals.", 2),
-        new("Core Gameplay Loop", "Describe what the player repeatedly does and why the loop remains engaging.", 3),
-        new("Mechanics and Systems", "Explain the rules, interactions, resources, and connected systems.", 4),
-        new("Progression", "Describe how challenge, abilities, content, and player mastery develop over time.", 5),
-        new("Characters", "Record important characters, roles, motivations, and relationships.", 6),
-        new("World and Lore", "Describe the setting, locations, history, factions, and world rules.", 7),
-        new("Art Direction", "Define the visual language, mood, readability goals, and key references.", 8),
-        new("Technical Features", "Record important technical requirements, tools, integrations, and constraints.", 9),
-        new("Production Scope", "Set boundaries, milestones, priorities, and assumptions for production.", 10),
-        new("Risks and Open Questions", "Track unresolved decisions, design risks, and validation work.", 11)
-    ];
+        new(DefaultGddTemplate.Sections
+            .OrderBy(section => section.SortOrder)
+            .Select(section => new GddSectionDraftViewModel(
+                section.TitleEnglish,
+                section.GuidanceEnglish,
+                section.SortOrder)));
 
     private static string CleanPreviewName(string value)
     {

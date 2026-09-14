@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.16.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.17.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -60,6 +60,7 @@
         <Grid Grid.Column="1" Margin="54,42">
             <Grid Visibility="{Binding HomeVisibility}">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
@@ -127,6 +128,31 @@
                         </Border>
                     </Button>
                 </Grid>
+
+                <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="13" Padding="20" Margin="0,24,0,0"
+                        VerticalAlignment="Top">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="42" Height="42" Background="#F1EDFF" CornerRadius="11" VerticalAlignment="Top">
+                            <TextBlock Text="▤" Foreground="{StaticResource AccentBrush}" FontSize="20"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="15,0,20,0" VerticalAlignment="Center">
+                            <TextBlock Text="Blank GDD Template" FontFamily="Segoe UI Semibold" FontSize="16" />
+                            <TextBlock Text="{Binding HomeMessage}" Foreground="{StaticResource MutedInkBrush}"
+                                       FontSize="12" TextWrapping="Wrap" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="Export PDF" Style="{StaticResource PrimaryButtonStyle}"
+                                IsEnabled="{Binding CanExportGddTemplate}" Click="ExportGddTemplatePdf_Click"
+                                Padding="17,9" VerticalAlignment="Center"
+                                AutomationProperties.Name="Export blank GDD template as PDF" />
+                    </Grid>
+                </Border>
             </Grid>
 
             <Grid Visibility="{Binding WizardVisibility}">

@@ -91,6 +91,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ExportGddTemplatePdf_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var fileDialog = new SaveFileDialog
+        {
+            Title = "Export blank GDD template",
+            Filter = "PDF document (*.pdf)|*.pdf",
+            DefaultExt = ".pdf",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = "GameDesignWizard-GDD-Template.pdf"
+        };
+        if (fileDialog.ShowDialog(this) == true)
+        {
+            await viewModel.ExportGddTemplatePdfAsync(fileDialog.FileName);
+        }
+    }
+
     private void AddMedia_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel)

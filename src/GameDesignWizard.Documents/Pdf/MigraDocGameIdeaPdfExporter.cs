@@ -7,7 +7,8 @@ using System.Windows.Media.Imaging;
 
 namespace GameDesignWizard.Documents.Pdf;
 
-public sealed class MigraDocGameIdeaPdfExporter(IManagedMediaStorage mediaStorage) : IGameIdeaPdfExporter
+public sealed class MigraDocGameIdeaPdfExporter(IManagedMediaStorage mediaStorage)
+    : IGameIdeaPdfExporter, IGddTemplatePdfExporter
 {
     private static readonly Color AccentColor = Color.FromRgb(105, 86, 232);
     private static readonly Color DarkColor = Color.FromRgb(31, 42, 68);
@@ -22,6 +23,14 @@ public sealed class MigraDocGameIdeaPdfExporter(IManagedMediaStorage mediaStorag
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         return Task.Run(() => Export(idea, destinationPath, cancellationToken), cancellationToken);
+    }
+
+    public Task ExportTemplateAsync(
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        return Task.Run(() => ExportTemplate(destinationPath, cancellationToken), cancellationToken);
     }
 
     private void Export(
@@ -41,6 +50,35 @@ public sealed class MigraDocGameIdeaPdfExporter(IManagedMediaStorage mediaStorag
         try
         {
             var document = BuildDocument(idea, cancellationToken);
+            var renderer = new PdfDocumentRenderer { Document = document };
+            renderer.RenderDocument();
+            cancellationToken.ThrowIfCancellationRequested();
+            renderer.PdfDocument.Save(temporaryPath);
+            File.Move(temporaryPath, fullDestinationPath, true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    private void ExportTemplate(string destinationPath, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fullDestinationPath = Path.GetFullPath(destinationPath);
+        var destinationDirectory = Path.GetDirectoryName(fullDestinationPath)
+            ?? throw new InvalidOperationException("The PDF destination directory is invalid.");
+        Directory.CreateDirectory(destinationDirectory);
+        var temporaryPath = Path.Combine(
+            destinationDirectory,
+            $".{Path.GetFileName(fullDestinationPath)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            var document = BuildTemplateDocument(cancellationToken);
             var renderer = new PdfDocumentRenderer { Document = document };
             renderer.RenderDocument();
             cancellationToken.ThrowIfCancellationRequested();
@@ -91,6 +129,131 @@ public sealed class MigraDocGameIdeaPdfExporter(IManagedMediaStorage mediaStorag
         AddMedia(section, idea.MediaAttachments, cancellationToken);
         AddReferences(section, idea.References);
         return document;
+    }
+
+    private static Document BuildTemplateDocument(CancellationToken cancellationToken)
+    {
+        var document = new Document();
+        document.Info.Title = "GameDesignWizard - Game Design Document Template";
+        document.Info.Subject = "Printable blank game design document template";
+        document.Info.Author = "GameDesignWizard";
+        ConfigureStyles(document);
+
+        var section = document.AddSection();
+        section.PageSetup.PageFormat = PageFormat.A4;
+        section.PageSetup.TopMargin = Unit.FromCentimeter(1.8);
+        section.PageSetup.BottomMargin = Unit.FromCentimeter(1.8);
+        section.PageSetup.LeftMargin = Unit.FromCentimeter(1.9);
+        section.PageSetup.RightMargin = Unit.FromCentimeter(1.9);
+        AddFooter(section);
+        AddTemplateTitle(section);
+        AddTemplateProjectInformation(section);
+        AddTemplateOverview(section);
+
+        var templateSections = DefaultGddTemplate.Sections.OrderBy(item => item.SortOrder).ToArray();
+        for (var index = 0; index < templateSections.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (index % 3 == 0)
+            {
+                section.AddPageBreak();
+            }
+
+            AddTemplateSection(section, templateSections[index]);
+        }
+
+        return document;
+    }
+
+    private static void AddTemplateTitle(Section section)
+    {
+        var eyebrow = section.AddParagraph();
+        eyebrow.Format.SpaceAfter = Unit.FromPoint(8);
+        eyebrow.Format.Font.Name = "Segoe UI Semibold";
+        eyebrow.Format.Font.Size = Unit.FromPoint(10);
+        eyebrow.Format.Font.Bold = true;
+        eyebrow.Format.Font.Color = AccentColor;
+        eyebrow.AddText("PRINTABLE GDD TEMPLATE");
+
+        var title = section.AddParagraph();
+        title.Format.SpaceAfter = Unit.FromPoint(7);
+        title.Format.Font.Name = "Segoe UI Semibold";
+        title.Format.Font.Size = Unit.FromPoint(28);
+        title.Format.Font.Bold = true;
+        title.Format.Font.Color = DarkColor;
+        title.AddText("Game Design Document");
+
+        var subtitle = section.AddParagraph();
+        subtitle.Format.SpaceAfter = Unit.FromPoint(18);
+        subtitle.Format.Font.Size = Unit.FromPoint(10);
+        subtitle.Format.Font.Color = MutedColor;
+        subtitle.AddText("Use the prompts as a practical starting point. Expand, skip, or revise sections to fit the game.");
+    }
+
+    private static void AddTemplateProjectInformation(Section section)
+    {
+        section.AddParagraph("Project Information", StyleNames.Heading1);
+        var table = section.AddTable();
+        table.Borders.Width = Unit.FromPoint(0.6);
+        table.Borders.Color = BorderColor;
+        table.Rows.LeftIndent = Unit.Zero;
+        table.AddColumn(Unit.FromCentimeter(4.1));
+        table.AddColumn(Unit.FromCentimeter(12.4));
+
+        foreach (var label in new[]
+                 {
+                     "Game title", "Document version / date", "Author / team", "Platform",
+                     "Genre / subgenre", "Target audience", "Development duration / team size"
+                 })
+        {
+            var row = table.AddRow();
+            row.Height = Unit.FromCentimeter(0.82);
+            row.VerticalAlignment = VerticalAlignment.Center;
+            row.Cells[0].Shading.Color = LightColor;
+            row.Cells[0].Format.Font.Bold = true;
+            row.Cells[0].AddParagraph(label);
+            row.Cells[1].AddParagraph(" ");
+        }
+    }
+
+    private static void AddTemplateOverview(Section section)
+    {
+        section.AddParagraph("Game Overview", StyleNames.Heading1);
+        var guidance = section.AddParagraph(
+            "Summarize the player fantasy, central conflict, core activity, and the reason this game should exist.");
+        guidance.Format.Font.Italic = true;
+        guidance.Format.Font.Color = MutedColor;
+        guidance.Format.SpaceAfter = Unit.FromPoint(7);
+        AddWritingLines(section, 5);
+    }
+
+    private static void AddTemplateSection(Section section, GddTemplateSection templateSection)
+    {
+        var heading = section.AddParagraph(templateSection.TitleEnglish, StyleNames.Heading1);
+        heading.Format.SpaceBefore = Unit.FromPoint(8);
+        var guidance = section.AddParagraph(templateSection.GuidanceEnglish);
+        guidance.Format.Font.Italic = true;
+        guidance.Format.Font.Color = MutedColor;
+        guidance.Format.SpaceAfter = Unit.FromPoint(6);
+        guidance.Format.KeepWithNext = true;
+        AddWritingLines(section, 4);
+    }
+
+    private static void AddWritingLines(Section section, int lineCount)
+    {
+        var table = section.AddTable();
+        table.Rows.LeftIndent = Unit.Zero;
+        table.AddColumn(Unit.FromCentimeter(16.5));
+        for (var index = 0; index < lineCount; index++)
+        {
+            var row = table.AddRow();
+            row.Height = Unit.FromCentimeter(0.68);
+            row.Borders.Bottom.Width = Unit.FromPoint(0.45);
+            row.Borders.Bottom.Color = BorderColor;
+            row.Cells[0].AddParagraph(" ");
+        }
+
+        table.Format.SpaceAfter = Unit.FromPoint(7);
     }
 
     private static void ConfigureStyles(Document document)

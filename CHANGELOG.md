@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17.0
+
+- Add blank GDD template PDF export to the Home screen without requiring a saved idea.
+- Include project metadata fields, a game overview area, and all twelve default GDD sections.
+- Add concise English guidance and printable writing lines for every section.
+- Share one default section definition between the wizard and blank template exporter.
+- Render the template as five A4 pages with consistent typography, margins, footers, and page numbers.
+- Preserve an existing destination until the complete template has rendered successfully.
+
 ## 0.16.0
 
 - Add case-insensitive Settings catalog search across option and parent-genre names.
