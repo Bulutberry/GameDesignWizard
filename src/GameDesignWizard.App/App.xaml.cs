@@ -17,7 +17,12 @@ public partial class App : Application
             var contextFactory = new AppDbContextFactory();
             var repository = new SqliteCatalogRepository(contextFactory);
             var ideaRepository = new SqliteGameIdeaRepository(contextFactory);
-            var viewModel = new MainWindowViewModel(repository, new CatalogFileReader(), ideaRepository);
+            var mediaStorage = new ManagedMediaStorage();
+            var viewModel = new MainWindowViewModel(
+                repository,
+                new CatalogFileReader(),
+                ideaRepository,
+                mediaStorage);
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);

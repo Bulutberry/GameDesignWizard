@@ -12,7 +12,9 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly ICatalogRepository? _catalogRepository;
     private readonly ICatalogFileReader? _catalogFileReader;
     private readonly IGameIdeaRepository? _gameIdeaRepository;
+    private readonly IManagedMediaStorage? _managedMediaStorage;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
+    private readonly List<string> _removedManagedMediaPaths = [];
     private AppPage _currentPage = AppPage.Home;
     private CatalogCategoryItemViewModel _selectedCatalogCategory;
     private CatalogOptionViewModel? _selectedParentGenre;
@@ -34,19 +36,19 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isInitialized;
 
     public MainWindowViewModel()
-        : this(null, null, null)
+        : this(null, null, null, null)
     {
     }
 
     public MainWindowViewModel(ICatalogRepository? catalogRepository)
-        : this(catalogRepository, null, null)
+        : this(catalogRepository, null, null, null)
     {
     }
 
     public MainWindowViewModel(
         ICatalogRepository? catalogRepository,
         ICatalogFileReader? catalogFileReader)
-        : this(catalogRepository, catalogFileReader, null)
+        : this(catalogRepository, catalogFileReader, null, null)
     {
     }
 
@@ -54,10 +56,20 @@ public sealed class MainWindowViewModel : ObservableObject
         ICatalogRepository? catalogRepository,
         ICatalogFileReader? catalogFileReader,
         IGameIdeaRepository? gameIdeaRepository)
+        : this(catalogRepository, catalogFileReader, gameIdeaRepository, null)
+    {
+    }
+
+    public MainWindowViewModel(
+        ICatalogRepository? catalogRepository,
+        ICatalogFileReader? catalogFileReader,
+        IGameIdeaRepository? gameIdeaRepository,
+        IManagedMediaStorage? managedMediaStorage)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
         _gameIdeaRepository = gameIdeaRepository;
+        _managedMediaStorage = managedMediaStorage;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -82,6 +94,7 @@ public sealed class MainWindowViewModel : ObservableObject
         TeamSizeChoices = [];
         GddSections = CreateDefaultGddSections();
         SavedIdeas = [];
+        MediaAttachments = [];
         foreach (var section in GddSections)
         {
             section.PropertyChanged += (_, eventArgs) =>
@@ -125,6 +138,7 @@ public sealed class MainWindowViewModel : ObservableObject
         RemoveReferenceCommand = new RelayCommand(RemoveReference);
         ClearDevelopmentDurationCommand = new RelayCommand(_ => SelectedDevelopmentDuration = null);
         ClearTeamSizeCommand = new RelayCommand(_ => SelectedTeamSize = null);
+        RemoveMediaCommand = new RelayCommand(RemoveMedia);
         WizardNextCommand = new AsyncRelayCommand(_ => MoveWizardNextAsync());
         WizardPreviousCommand = new RelayCommand(_ => MoveWizardPrevious());
     }
@@ -152,6 +166,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<GddSectionDraftViewModel> GddSections { get; }
 
     public ObservableCollection<GameIdeaListItemViewModel> SavedIdeas { get; }
+
+    public ObservableCollection<DraftMediaAttachmentViewModel> MediaAttachments { get; }
 
     public ObservableCollection<CatalogOptionViewModel> AvailableTopics => TopicPicker.AvailableOptions;
 
@@ -194,6 +210,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public ICommand ClearDevelopmentDurationCommand { get; }
 
     public ICommand ClearTeamSizeCommand { get; }
+
+    public ICommand RemoveMediaCommand { get; }
 
     public ICommand WizardNextCommand { get; }
 
@@ -362,7 +380,7 @@ public sealed class MainWindowViewModel : ObservableObject
         3 => $"Features: {FeaturePicker.SelectedOptions.Count} · Art styles: {ArtStylePicker.SelectedOptions.Count}",
         4 => $"Mechanics: {MechanicsPicker.SelectedOptions.Count}",
         5 => $"References: {References.Count(reference => !reference.IsBlank)}",
-        6 => $"Game: {NormalizeGameName(GameName)} · GDD sections: {GddSections.Count(section => !string.IsNullOrWhiteSpace(section.Content))}",
+        6 => $"Game: {NormalizeGameName(GameName)} · GDD sections: {GddSections.Count(section => !string.IsNullOrWhiteSpace(section.Content))} · Media: {MediaAttachments.Count}",
         _ => string.Empty
     };
 
@@ -955,10 +973,31 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        var importedThisSave = new List<DraftMediaAttachmentViewModel>();
+        var ideaPersisted = false;
         try
         {
             var name = NormalizeGameName(GameName);
             GameName = name;
+            if (MediaAttachments.Count > 0 && _managedMediaStorage is null)
+            {
+                throw new InvalidOperationException("Media storage is unavailable in preview mode.");
+            }
+
+            if (_managedMediaStorage is not null)
+            {
+                foreach (var attachment in MediaAttachments.Where(attachment => attachment.StoredRelativePath is null))
+                {
+                    var managedFile = await _managedMediaStorage.ImportAsync(
+                        _draftIdeaId,
+                        attachment.Id,
+                        attachment.SourcePath,
+                        cancellationToken);
+                    attachment.MarkManaged(managedFile.StoredRelativePath);
+                    importedThisSave.Add(attachment);
+                }
+            }
+
             var document = new GameIdeaDocument
             {
                 Id = _draftIdeaId,
@@ -988,24 +1027,115 @@ public sealed class MainWindowViewModel : ObservableObject
                         reference.Note.Trim(),
                         index))
                     .ToList(),
+                MediaAttachments = MediaAttachments
+                    .Select((attachment, index) => new MediaAttachmentContent(
+                        attachment.Id,
+                        attachment.FileName,
+                        attachment.MediaType,
+                        attachment.StoredRelativePath
+                            ?? throw new InvalidOperationException($"{attachment.FileName} has not been copied to managed storage."),
+                        attachment.Caption.Trim(),
+                        index))
+                    .ToList(),
                 CreatedAtUtc = _draftCreatedAtUtc,
                 UpdatedAtUtc = DateTime.UtcNow
             };
 
             await _gameIdeaRepository.SaveAsync(document, cancellationToken);
+            ideaPersisted = true;
             _hasSavedIdea = true;
-            await LoadIdeaPoolAsync(cancellationToken);
             OnPropertyChanged(nameof(WizardNextLabel));
+            if (_managedMediaStorage is not null)
+            {
+                foreach (var storedPath in _removedManagedMediaPaths.ToArray())
+                {
+                    try
+                    {
+                        await _managedMediaStorage.DeleteAsync(storedPath, cancellationToken);
+                        _removedManagedMediaPaths.Remove(storedPath);
+                    }
+                    catch
+                    {
+                        // An unreferenced file can be cleaned during a later save or maintenance pass.
+                    }
+                }
+            }
+
+            await LoadIdeaPoolAsync(cancellationToken);
             OnPropertyChanged(nameof(WizardSelectionSummary));
             WizardMessage = $"{name} was saved to the {GetPoolLabel(document.PoolGroup)} idea pool.";
         }
         catch (InvalidOperationException exception)
         {
-            WizardMessage = exception.Message;
+            if (!ideaPersisted)
+            {
+                await RollBackMediaImportsAsync(importedThisSave);
+                WizardMessage = exception.Message;
+                return;
+            }
+
+            WizardMessage = $"{NormalizeGameName(GameName)} was saved, but the idea pool could not be refreshed.";
         }
         catch (Exception)
         {
-            WizardMessage = "The idea could not be saved. Try again.";
+            if (!ideaPersisted)
+            {
+                await RollBackMediaImportsAsync(importedThisSave);
+                WizardMessage = "The idea could not be saved. Try again.";
+                return;
+            }
+
+            WizardMessage = $"{NormalizeGameName(GameName)} was saved, but the idea pool could not be refreshed.";
+        }
+    }
+
+    public void AddMediaFiles(IEnumerable<string> filePaths)
+    {
+        if (_managedMediaStorage is null)
+        {
+            WizardMessage = "Media selection is unavailable in preview mode.";
+            return;
+        }
+
+        try
+        {
+            var candidates = new List<(string FullPath, string FileName, MediaAttachmentType MediaType)>();
+            foreach (var path in filePaths)
+            {
+                var fullPath = Path.GetFullPath(path);
+                if (MediaAttachments.Any(attachment =>
+                        string.Equals(attachment.SourcePath, fullPath, StringComparison.OrdinalIgnoreCase))
+                    || candidates.Any(candidate =>
+                        string.Equals(candidate.FullPath, fullPath, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                if (!File.Exists(fullPath))
+                {
+                    throw new InvalidOperationException($"{Path.GetFileName(fullPath)} could not be found.");
+                }
+
+                var mediaType = _managedMediaStorage.GetMediaType(fullPath);
+                candidates.Add((fullPath, Path.GetFileName(fullPath), mediaType));
+            }
+
+            foreach (var candidate in candidates)
+            {
+                MediaAttachments.Add(new DraftMediaAttachmentViewModel(
+                    candidate.FullPath,
+                    candidate.FileName,
+                    candidate.MediaType));
+            }
+
+            OnPropertyChanged(nameof(WizardSelectionSummary));
+            WizardMessage = candidates.Count == 0
+                ? "The selected media files are already attached."
+                : $"{candidates.Count} media file(s) ready to copy when the idea is saved.";
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or NotSupportedException)
+        {
+            WizardMessage = exception.Message;
         }
     }
 
@@ -1018,6 +1148,50 @@ public sealed class MainWindowViewModel : ObservableObject
         if (_wizardStep == 5)
         {
             WizardMessage = "A new reference row was added.";
+        }
+    }
+
+    private void RemoveMedia(object? parameter)
+    {
+        if (parameter is not DraftMediaAttachmentViewModel attachment
+            || !MediaAttachments.Remove(attachment))
+        {
+            return;
+        }
+
+        if (attachment.StoredRelativePath is not null)
+        {
+            _removedManagedMediaPaths.Add(attachment.StoredRelativePath);
+        }
+
+        OnPropertyChanged(nameof(WizardSelectionSummary));
+        WizardMessage = $"{attachment.FileName} will be removed when the idea is saved.";
+    }
+
+    private async Task RollBackMediaImportsAsync(IEnumerable<DraftMediaAttachmentViewModel> attachments)
+    {
+        if (_managedMediaStorage is null)
+        {
+            return;
+        }
+
+        foreach (var attachment in attachments)
+        {
+            if (attachment.StoredRelativePath is not { } storedPath)
+            {
+                continue;
+            }
+
+            try
+            {
+                await _managedMediaStorage.DeleteAsync(storedPath);
+            }
+            catch
+            {
+                // Preserve the pending attachment so the next save can replace any orphaned file.
+            }
+
+            attachment.MarkPending();
         }
     }
 

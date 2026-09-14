@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.9.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving, bulk catalog import, and distributable defaults:
+Prototype 0.10.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving, managed media attachments, bulk catalog import, and distributable defaults:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -14,6 +14,7 @@ Prototype 0.9.0 validates the visual direction, persistent dynamic catalogs, the
 - Double-click or Enter keyboard transfer between available and selected options
 - Repeatable reference URL and note rows with inline validation
 - Game name, overview, production-scope choices, and editable GDD sections
+- Image and audio attachments with optional captions and source-independent managed copies
 - SQLite idea saving with catalog-label snapshots and fixed PC, Mobile, or Other routing
 - A read-only saved-idea table with live PC, Mobile, and Other counts
 - Fixed PC, Mobile, and Other idea-pool groups
@@ -26,6 +27,8 @@ Prototype 0.9.0 validates the visual direction, persistent dynamic catalogs, the
 - Custom-platform routing explained as Other
 
 Catalog data is stored locally in `%LOCALAPPDATA%\GameDesignWizard\game-design-wizard.db`.
+
+Saved image and audio attachments are copied into `%LOCALAPPDATA%\GameDesignWizard\media` and referenced by relative paths. Moving or deleting the original source file does not break the saved idea.
 
 All default options are versioned in [`catalog-source/en/default-catalog.json`](catalog-source/en/default-catalog.json). The JSON is embedded during build, so a fresh GitHub checkout starts with these defaults without importing any files. Application upgrades add missing shipped defaults while preserving local custom options and archive states. See [`catalog-source/README.md`](catalog-source/README.md) for the maintainer workflow.
 

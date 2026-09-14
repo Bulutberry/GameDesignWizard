@@ -36,6 +36,8 @@ public sealed class GameIdeaDocument
 
     public List<GameReferenceContent> References { get; init; } = [];
 
+    public List<MediaAttachmentContent> MediaAttachments { get; init; } = [];
+
     public DateTime CreatedAtUtc { get; init; }
 
     public DateTime UpdatedAtUtc { get; init; }
@@ -46,3 +48,11 @@ public sealed record CatalogSelectionSnapshot(Guid OptionId, string NameEnglish)
 public sealed record GddSectionContent(Guid Id, string TitleEnglish, string ContentEnglish, int SortOrder);
 
 public sealed record GameReferenceContent(Guid Id, string? Url, string NoteEnglish, int SortOrder);
+
+public sealed record MediaAttachmentContent(
+    Guid Id,
+    string FileName,
+    MediaAttachmentType MediaType,
+    string StoredRelativePath,
+    string CaptionEnglish,
+    int SortOrder);

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+- Add image and audio attachments with optional English captions to the final wizard step.
+- Accept PNG, JPEG, WebP, GIF, BMP, MP3, WAV, M4A, OGG, and FLAC files.
+- Copy attachments atomically into per-idea managed local storage when an idea is saved.
+- Persist managed relative paths so saved attachments survive source-file moves and deletions.
+- Delete removed managed files only after a successful idea save and roll back new copies when saving fails.
+- Reject unsupported extensions and managed paths that leave the application media directory.
+
 ## 0.9.0
 
 - Add wizard step 6 with game name, overview, development duration, and team-size fields.

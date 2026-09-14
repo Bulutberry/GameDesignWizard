@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.9.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.10.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -420,6 +420,57 @@
                                 <TextBox Style="{StaticResource InputStyle}" Text="{Binding OverviewEnglish, UpdateSourceTrigger=PropertyChanged}"
                                          AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Height="110"
                                          AutomationProperties.Name="Game overview" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="12" Padding="20" Margin="0,0,0,14">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Media attachments" FontFamily="Segoe UI Semibold" FontSize="18" />
+                                        <TextBlock Text="Images and audio are copied into managed storage when the idea is saved."
+                                                   Foreground="{StaticResource MutedInkBrush}" FontSize="12" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Add media" Style="{StaticResource SecondaryButtonStyle}"
+                                            Click="AddMedia_Click" Padding="16,9" />
+                                </Grid>
+
+                                <ItemsControl ItemsSource="{Binding MediaAttachments}" Margin="0,14,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#F8F8FC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                                    CornerRadius="9" Padding="13" Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="180" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding TypeLabel}" Foreground="{StaticResource AccentBrush}"
+                                                                   FontWeight="Bold" FontSize="10" />
+                                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13"
+                                                                   TextTrimming="CharacterEllipsis" Margin="0,3,0,0" />
+                                                        <TextBlock Text="{Binding StorageState}" Foreground="{StaticResource MutedInkBrush}"
+                                                                   FontSize="10" Margin="0,2,0,0" />
+                                                    </StackPanel>
+                                                    <TextBox Grid.Column="1" Style="{StaticResource InputStyle}"
+                                                             Text="{Binding Caption, UpdateSourceTrigger=PropertyChanged}"
+                                                             ToolTip="Optional caption or transcript note"
+                                                             AutomationProperties.Name="Media caption" Margin="12,0" />
+                                                    <Button Grid.Column="2" Content="Remove" Style="{StaticResource SecondaryButtonStyle}"
+                                                            Command="{Binding DataContext.RemoveMediaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}" Padding="14,9" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Border>
 

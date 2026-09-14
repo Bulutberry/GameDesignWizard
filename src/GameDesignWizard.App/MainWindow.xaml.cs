@@ -54,4 +54,24 @@ public partial class MainWindow : Window
                 MessageBoxImage.Warning);
         }
     }
+
+    private void AddMedia_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var fileDialog = new OpenFileDialog
+        {
+            Title = "Choose images or audio",
+            Filter = "Supported media|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.bmp;*.mp3;*.wav;*.m4a;*.ogg;*.flac|Images|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.bmp|Audio|*.mp3;*.wav;*.m4a;*.ogg;*.flac",
+            CheckFileExists = true,
+            Multiselect = true
+        };
+        if (fileDialog.ShowDialog(this) == true)
+        {
+            viewModel.AddMediaFiles(fileDialog.FileNames);
+        }
+    }
 }

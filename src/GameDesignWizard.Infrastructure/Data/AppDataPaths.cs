@@ -8,6 +8,8 @@ public static class AppDataPaths
 
     public static string DatabasePath => Path.Combine(DataDirectory, "game-design-wizard.db");
 
+    public static string MediaDirectory => Path.Combine(DataDirectory, "media");
+
     public static string ResolveDatabasePath()
     {
         var overridePath = Environment.GetEnvironmentVariable("GDW_DATABASE_PATH");
