@@ -1,6 +1,7 @@
 using System.Windows;
 using GameDesignWizard.App.ViewModels;
 using GameDesignWizard.Documents.Pdf;
+using GameDesignWizard.Documents.Markdown;
 using GameDesignWizard.Infrastructure.Catalog;
 using GameDesignWizard.Infrastructure.Data;
 using GameDesignWizard.Infrastructure.Ideas;
@@ -29,7 +30,8 @@ public partial class App : Application
                 pdfExporter,
                 workbookExporter,
                 new CatalogFileWriter(),
-                pdfExporter);
+                pdfExporter,
+                new MarkdownGameIdeaExporter());
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);

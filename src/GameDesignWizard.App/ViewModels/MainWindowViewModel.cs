@@ -19,6 +19,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IGameIdeaWorkbookExporter? _gameIdeaWorkbookExporter;
     private readonly ICatalogFileWriter? _catalogFileWriter;
     private readonly IGddTemplatePdfExporter? _gddTemplatePdfExporter;
+    private readonly IGameIdeaMarkdownExporter? _gameIdeaMarkdownExporter;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private readonly List<string> _removedManagedMediaPaths = [];
     private AppPage _currentPage = AppPage.Home;
@@ -53,6 +54,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isLoadingIdea;
     private bool _isDeletingIdea;
     private bool _isExportingGddTemplate;
+    private bool _isExportingMarkdown;
     private string _homeMessage = "Export the printable GDD template whenever you need a blank planning document.";
 
     public MainWindowViewModel()
@@ -107,7 +109,8 @@ public sealed class MainWindowViewModel : ObservableObject
         IGameIdeaPdfExporter? gameIdeaPdfExporter,
         IGameIdeaWorkbookExporter? gameIdeaWorkbookExporter,
         ICatalogFileWriter? catalogFileWriter = null,
-        IGddTemplatePdfExporter? gddTemplatePdfExporter = null)
+        IGddTemplatePdfExporter? gddTemplatePdfExporter = null,
+        IGameIdeaMarkdownExporter? gameIdeaMarkdownExporter = null)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
@@ -117,6 +120,7 @@ public sealed class MainWindowViewModel : ObservableObject
         _gameIdeaWorkbookExporter = gameIdeaWorkbookExporter;
         _catalogFileWriter = catalogFileWriter;
         _gddTemplatePdfExporter = gddTemplatePdfExporter;
+        _gameIdeaMarkdownExporter = gameIdeaMarkdownExporter;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -247,6 +251,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public bool CanExportSelectedIdeaPdf => HasSelectedSavedIdea && !IsIdeaPoolActionRunning;
 
+    public bool CanExportSelectedIdeaMarkdown => HasSelectedSavedIdea
+        && _gameIdeaRepository is not null
+        && _gameIdeaMarkdownExporter is not null
+        && !IsIdeaPoolActionRunning;
+
     public bool CanExportAllIdeasWorkbook => SavedIdeas.Count > 0 && !IsIdeaPoolActionRunning;
 
     public bool CanExportFilteredIdeasWorkbook => VisibleIdeaCount > 0 && !IsIdeaPoolActionRunning;
@@ -256,7 +265,7 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool CanDeleteSelectedIdea => HasSelectedSavedIdea && !IsIdeaPoolActionRunning;
 
     private bool IsIdeaPoolActionRunning =>
-        _isExportingPdf || _isExportingWorkbook || _isLoadingIdea || _isDeletingIdea;
+        _isExportingPdf || _isExportingMarkdown || _isExportingWorkbook || _isLoadingIdea || _isDeletingIdea;
 
     public ObservableCollection<DraftMediaAttachmentViewModel> MediaAttachments { get; }
 
@@ -1780,6 +1789,55 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    public async Task ExportSelectedIdeaMarkdownAsync(
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (SelectedSavedIdea is null)
+        {
+            SetIdeaPoolActionMessage("Select an idea before exporting Markdown.");
+            return;
+        }
+
+        if (_gameIdeaRepository is null || _gameIdeaMarkdownExporter is null)
+        {
+            SetIdeaPoolActionMessage("Markdown export is unavailable in preview mode.");
+            return;
+        }
+
+        if (IsIdeaPoolActionRunning)
+        {
+            return;
+        }
+
+        _isExportingMarkdown = true;
+        NotifyIdeaPoolSelectionActionsChanged();
+        try
+        {
+            var idea = await _gameIdeaRepository.GetByIdAsync(SelectedSavedIdea.Id, cancellationToken)
+                ?? throw new InvalidOperationException("The selected idea could not be found.");
+            await _gameIdeaMarkdownExporter.ExportAsync(idea, destinationPath, cancellationToken);
+            SetIdeaPoolActionMessage($"{idea.NameEnglish} was exported to {Path.GetFileName(destinationPath)}.");
+        }
+        catch (OperationCanceledException)
+        {
+            SetIdeaPoolActionMessage("Markdown export was canceled.");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            SetIdeaPoolActionMessage(exception.Message);
+        }
+        catch (Exception)
+        {
+            SetIdeaPoolActionMessage("The Markdown document could not be exported. Try another location.");
+        }
+        finally
+        {
+            _isExportingMarkdown = false;
+            NotifyIdeaPoolSelectionActionsChanged();
+        }
+    }
+
     public Task ExportAllIdeasWorkbookAsync(
         string destinationPath,
         CancellationToken cancellationToken = default) =>
@@ -2005,6 +2063,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void NotifyIdeaPoolSelectionActionsChanged()
     {
         OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+        OnPropertyChanged(nameof(CanExportSelectedIdeaMarkdown));
         OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
         OnPropertyChanged(nameof(CanExportFilteredIdeasWorkbook));
         OnPropertyChanged(nameof(CanEditSelectedIdea));

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.0
+
+- Add selected-idea Markdown export to the Idea Pool.
+- Include readable project metadata, overview, every saved GDD section, references, and media notes.
+- Preserve authored Markdown inside GDD content while escaping table and inline metadata values.
+- Keep managed media paths private and explain that attachment files are not embedded in Markdown.
+- Write UTF-8 output atomically so an incomplete export cannot replace an existing destination.
+- Place Idea Pool status text and export actions on separate rows for improved readability.
+
 ## 0.17.0
 
 - Add blank GDD template PDF export to the Home screen without requiring a saved idea.

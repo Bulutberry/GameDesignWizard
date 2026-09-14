@@ -155,6 +155,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ExportIdeaMarkdown_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel { SelectedSavedIdea: { } selectedIdea } viewModel)
+        {
+            return;
+        }
+
+        var fileDialog = new SaveFileDialog
+        {
+            Title = "Export editable game design document",
+            Filter = "Markdown document (*.md)|*.md",
+            DefaultExt = ".md",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = CreateSafeFileName($"{selectedIdea.Name}-GDD.md")
+        };
+        if (fileDialog.ShowDialog(this) == true)
+        {
+            await viewModel.ExportSelectedIdeaMarkdownAsync(fileDialog.FileName);
+        }
+    }
+
     private async void EditIdea_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel viewModel)

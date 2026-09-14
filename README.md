@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.17.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, filled and blank GDD PDF export, complete and filtered idea-pool XLSX export, bulk catalog exchange, and distributable defaults:
+Prototype 0.18.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, PDF and Markdown GDD export, complete and filtered idea-pool XLSX export, bulk catalog exchange, and distributable defaults:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -24,6 +24,7 @@ Prototype 0.17.0 validates the visual direction, persistent dynamic catalogs, th
 - Combined Idea Pool search, development-stage filtering, and clickable PC, Mobile, or Other pool cards
 - Filtered XLSX export that contains exactly the ideas currently visible in the table
 - Selected-idea PDF export with metadata, written GDD sections, references, images, captions, audio-file notes, and page numbers
+- Selected-idea Markdown export with readable metadata, editable GDD text, clickable references, and media notes for GitHub or plain-text workflows
 - Home-screen export of a five-page printable blank GDD template with project metadata fields, English guidance, and writing areas for all twelve default sections
 - Complete XLSX export across the PC, Mobile, and Other pools, including lossless selection, GDD, reference, and media detail sheets
 - Fixed PC, Mobile, and Other idea-pool groups
@@ -45,6 +46,8 @@ Catalog data is stored locally in `%LOCALAPPDATA%\GameDesignWizard\game-design-w
 Saved image and audio attachments are copied into `%LOCALAPPDATA%\GameDesignWizard\media` and referenced by relative paths. Moving or deleting the original source file does not break the saved idea.
 
 Choose **Export PDF** beside Blank GDD Template on Home to create a printable planning document without first saving an idea. Select a saved row in Idea Pool and choose **Export PDF** to create its filled A4 game design document. See [`docs/pdf-export.md`](docs/pdf-export.md) for both document contracts.
+
+Select a saved row and choose **Export Markdown** to create a portable, editable GDD that renders directly on GitHub. See [`docs/markdown-export.md`](docs/markdown-export.md) for the file contract and media behavior.
 
 Choose **Export All XLSX** in Idea Pool to create one workbook containing every saved idea, or **Export Filtered XLSX** to export only the current search, stage, and pool result. Both exports keep the fixed pool views easy to scan and include normalized detail sheets for complete data. See [`docs/idea-pool-export.md`](docs/idea-pool-export.md) for the workbook contract.
 
