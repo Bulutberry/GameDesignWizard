@@ -46,7 +46,7 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="5,6">
-                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding SelectionName}" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="Double-click to add" Foreground="{StaticResource MutedInkBrush}" FontSize="9" Margin="0,2,0,0" />
                                 </StackPanel>
                             </DataTemplate>
@@ -77,7 +77,7 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="5,6">
-                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding SelectionName}" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="Double-click to remove" Foreground="{StaticResource MutedInkBrush}" FontSize="9" Margin="0,2,0,0" />
                                 </StackPanel>
                             </DataTemplate>

@@ -7,4 +7,6 @@ public interface IGameIdeaRepository
     Task<IReadOnlyList<GameIdeaDocument>> GetAllAsync(CancellationToken cancellationToken = default);
 
     Task<GameIdeaDocument?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.12.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving, managed media attachments, individual GDD PDF export, complete idea-pool XLSX export, bulk catalog import, and distributable defaults:
+Prototype 0.13.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, managed media attachments, individual GDD PDF export, complete idea-pool XLSX export, bulk catalog import, and distributable defaults:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -17,6 +17,10 @@ Prototype 0.12.0 validates the visual direction, persistent dynamic catalogs, th
 - Image and audio attachments with optional captions and source-independent managed copies
 - SQLite idea saving with catalog-label snapshots and fixed PC, Mobile, or Other routing
 - A read-only saved-idea table with live PC, Mobile, and Other counts
+- Selected-idea editing through the complete wizard, including preserved archived catalog selections
+- Development stages for Idea, Concept, Prototyping, Completed, and Shelved
+- Confirmed idea deletion with cleanup of its managed image and audio files
+- A fresh draft after choosing Create Game Idea from a saved or edited idea
 - Selected-idea PDF export with metadata, written GDD sections, references, images, captions, audio-file notes, and page numbers
 - Complete XLSX export across the PC, Mobile, and Other pools, including lossless selection, GDD, reference, and media detail sheets
 - Fixed PC, Mobile, and Other idea-pool groups
@@ -35,6 +39,8 @@ Saved image and audio attachments are copied into `%LOCALAPPDATA%\GameDesignWiza
 Select a saved row in Idea Pool and choose **Export PDF** to create an A4 game design document. See [`docs/pdf-export.md`](docs/pdf-export.md) for the current document contract.
 
 Choose **Export All XLSX** in Idea Pool to create one workbook containing every saved idea. The export keeps the fixed pool views easy to scan and includes normalized detail sheets for complete data. See [`docs/idea-pool-export.md`](docs/idea-pool-export.md) for the workbook contract.
+
+Select an Idea Pool row and choose **Edit** to reopen its complete saved snapshot in the wizard. Choose **Delete** to remove the selected idea after confirmation. See [`docs/idea-pool-management.md`](docs/idea-pool-management.md) for editing, stage, routing, and deletion behavior.
 
 All default options are versioned in [`catalog-source/en/default-catalog.json`](catalog-source/en/default-catalog.json). The JSON is embedded during build, so a fresh GitHub checkout starts with these defaults without importing any files. Application upgrades add missing shipped defaults while preserving local custom options and archive states. See [`catalog-source/README.md`](catalog-source/README.md) for the maintainer workflow.
 

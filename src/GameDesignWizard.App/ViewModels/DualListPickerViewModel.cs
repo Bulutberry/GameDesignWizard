@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GameDesignWizard.Core.Catalog;
+using GameDesignWizard.Core.Ideas;
 
 namespace GameDesignWizard.App.ViewModels;
 
@@ -63,6 +64,36 @@ public sealed class DualListPickerViewModel : ObservableObject
         RefreshAvailableOptions();
     }
 
+    public void RestoreSelections(IEnumerable<CatalogSelectionSnapshot> selections)
+    {
+        foreach (var option in SelectedOptions)
+        {
+            option.IsSelected = false;
+        }
+
+        SelectedOptions.Clear();
+        foreach (var selection in selections)
+        {
+            var option = _allOptions.SingleOrDefault(candidate => candidate.Id == selection.OptionId);
+            if (option is null)
+            {
+                option = new CatalogOptionViewModel(
+                    selection.OptionId,
+                    Category,
+                    selection.NameEnglish,
+                    isBuiltIn: false,
+                    isActive: false);
+                _allOptions.Add(option);
+            }
+
+            option.IsSelected = true;
+            SelectedOptions.Add(option);
+        }
+
+        RefreshAvailableOptions();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void Add(object? parameter)
     {
         if (parameter is not CatalogOptionViewModel option
@@ -97,6 +128,8 @@ public sealed class DualListPickerViewModel : ObservableObject
         AvailableOptions.Clear();
         var selectedIds = SelectedOptions.Select(option => option.Id).ToHashSet();
         foreach (var option in _allOptions.Where(option =>
+                     option.IsActive
+                     &&
                      !selectedIds.Contains(option.Id)
                      && (SearchText.Length == 0
                          || option.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase))))

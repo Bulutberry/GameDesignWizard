@@ -98,6 +98,33 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void EditIdea_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            await viewModel.LoadSelectedIdeaForEditingAsync();
+        }
+    }
+
+    private async void DeleteIdea_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel { SelectedSavedIdea: { } selectedIdea } viewModel)
+        {
+            return;
+        }
+
+        var result = MessageBox.Show(
+            $"Delete {selectedIdea.Name}? This also removes its managed image and audio files.",
+            "Delete game idea",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (result == MessageBoxResult.Yes)
+        {
+            await viewModel.DeleteSelectedIdeaAsync();
+        }
+    }
+
     private async void ExportAllIdeasWorkbook_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel)

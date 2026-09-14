@@ -5,12 +5,15 @@ namespace GameDesignWizard.App.ViewModels;
 public sealed class DraftMediaAttachmentViewModel(
     string sourcePath,
     string fileName,
-    MediaAttachmentType mediaType) : ObservableObject
+    MediaAttachmentType mediaType,
+    Guid? id = null,
+    string? storedRelativePath = null,
+    string caption = "") : ObservableObject
 {
-    private string _caption = string.Empty;
-    private string? _storedRelativePath;
+    private string _caption = caption;
+    private string? _storedRelativePath = storedRelativePath;
 
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; } = id ?? Guid.NewGuid();
 
     public string SourcePath { get; } = sourcePath;
 

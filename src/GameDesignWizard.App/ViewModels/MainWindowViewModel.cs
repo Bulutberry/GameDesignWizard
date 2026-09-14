@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
@@ -32,14 +33,17 @@ public sealed class MainWindowViewModel : ObservableObject
     private CatalogOptionViewModel? _selectedTeamSize;
     private string _gameName = "NewGame";
     private string _overviewEnglish = string.Empty;
+    private GameIdeaStage _selectedDevelopmentStage = GameIdeaStage.Idea;
     private GameIdeaListItemViewModel? _selectedSavedIdea;
     private string? _ideaPoolActionMessage;
-    private readonly Guid _draftIdeaId = Guid.NewGuid();
-    private readonly DateTime _draftCreatedAtUtc = DateTime.UtcNow;
+    private Guid _draftIdeaId = Guid.NewGuid();
+    private DateTime _draftCreatedAtUtc = DateTime.UtcNow;
     private bool _hasSavedIdea;
     private bool _isInitialized;
     private bool _isExportingPdf;
     private bool _isExportingWorkbook;
+    private bool _isLoadingIdea;
+    private bool _isDeletingIdea;
 
     public MainWindowViewModel()
         : this(null, null, null, null, null, null)
@@ -121,18 +125,13 @@ public sealed class MainWindowViewModel : ObservableObject
         References = [];
         DevelopmentDurationChoices = [];
         TeamSizeChoices = [];
+        DevelopmentStageChoices = Enum.GetValues<GameIdeaStage>();
         GddSections = CreateDefaultGddSections();
         SavedIdeas = [];
         MediaAttachments = [];
         foreach (var section in GddSections)
         {
-            section.PropertyChanged += (_, eventArgs) =>
-            {
-                if (eventArgs.PropertyName == nameof(GddSectionDraftViewModel.Content))
-                {
-                    OnPropertyChanged(nameof(WizardSelectionSummary));
-                }
-            };
+            section.PropertyChanged += GddSectionPropertyChanged;
         }
         TopicPicker = new DualListPickerViewModel("Topics", CatalogCategory.Topic);
         FeaturePicker = new DualListPickerViewModel("Features", CatalogCategory.Feature);
@@ -153,7 +152,7 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         NavigateHomeCommand = new RelayCommand(_ => CurrentPage = AppPage.Home);
-        NavigateWizardCommand = new RelayCommand(_ => CurrentPage = AppPage.Wizard);
+        NavigateWizardCommand = new RelayCommand(_ => OpenCreateIdea());
         NavigatePoolCommand = new RelayCommand(_ => CurrentPage = AppPage.Pool);
         NavigateSettingsCommand = new RelayCommand(_ => CurrentPage = AppPage.Settings);
         AddCatalogOptionCommand = new AsyncRelayCommand(_ => AddCatalogOptionAsync());
@@ -205,7 +204,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 _ideaPoolActionMessage = null;
                 OnPropertyChanged(nameof(HasSelectedSavedIdea));
-                OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+                NotifyIdeaPoolSelectionActionsChanged();
                 OnPropertyChanged(nameof(IdeaPoolMessage));
             }
         }
@@ -213,11 +212,20 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public bool HasSelectedSavedIdea => SelectedSavedIdea is not null;
 
-    public bool CanExportSelectedIdeaPdf => HasSelectedSavedIdea && !_isExportingPdf;
+    public bool CanExportSelectedIdeaPdf => HasSelectedSavedIdea && !IsIdeaPoolActionRunning;
 
-    public bool CanExportAllIdeasWorkbook => SavedIdeas.Count > 0 && !_isExportingWorkbook;
+    public bool CanExportAllIdeasWorkbook => SavedIdeas.Count > 0 && !IsIdeaPoolActionRunning;
+
+    public bool CanEditSelectedIdea => HasSelectedSavedIdea && !IsIdeaPoolActionRunning;
+
+    public bool CanDeleteSelectedIdea => HasSelectedSavedIdea && !IsIdeaPoolActionRunning;
+
+    private bool IsIdeaPoolActionRunning =>
+        _isExportingPdf || _isExportingWorkbook || _isLoadingIdea || _isDeletingIdea;
 
     public ObservableCollection<DraftMediaAttachmentViewModel> MediaAttachments { get; }
+
+    public IReadOnlyList<GameIdeaStage> DevelopmentStageChoices { get; }
 
     public ObservableCollection<CatalogOptionViewModel> AvailableTopics => TopicPicker.AvailableOptions;
 
@@ -337,6 +345,18 @@ public sealed class MainWindowViewModel : ObservableObject
         set => SetProperty(ref _selectedTeamSize, value);
     }
 
+    public GameIdeaStage SelectedDevelopmentStage
+    {
+        get => _selectedDevelopmentStage;
+        set
+        {
+            if (SetProperty(ref _selectedDevelopmentStage, value))
+            {
+                OnPropertyChanged(nameof(WizardSelectionSummary));
+            }
+        }
+    }
+
     public string SettingsMessage
     {
         get => _settingsMessage;
@@ -404,7 +424,7 @@ public sealed class MainWindowViewModel : ObservableObject
         3 => "Choose any number of features and art styles. Double-click or press Enter to move an item.",
         4 => "Choose any number of mechanics. Double-click or press Enter to move an item.",
         5 => "Add useful links and notes. Empty rows will be ignored when the idea is saved.",
-        6 => "Name the idea, define its production scope, and write any GDD sections that help.",
+        6 => "Name the idea, set its development stage and production scope, and write any GDD sections that help.",
         _ => "Complete this step or leave it empty and continue."
     };
 
@@ -430,7 +450,7 @@ public sealed class MainWindowViewModel : ObservableObject
         3 => $"Features: {FeaturePicker.SelectedOptions.Count} · Art styles: {ArtStylePicker.SelectedOptions.Count}",
         4 => $"Mechanics: {MechanicsPicker.SelectedOptions.Count}",
         5 => $"References: {References.Count(reference => !reference.IsBlank)}",
-        6 => $"Game: {NormalizeGameName(GameName)} · GDD sections: {GddSections.Count(section => !string.IsNullOrWhiteSpace(section.Content))} · Media: {MediaAttachments.Count}",
+        6 => $"Game: {NormalizeGameName(GameName)} · Stage: {SelectedDevelopmentStage} · GDD sections: {GddSections.Count(section => !string.IsNullOrWhiteSpace(section.Content))} · Media: {MediaAttachments.Count}",
         _ => string.Empty
     };
 
@@ -626,6 +646,17 @@ public sealed class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(IsPoolSelected));
             OnPropertyChanged(nameof(IsSettingsSelected));
         }
+    }
+
+    private void OpenCreateIdea()
+    {
+        if (_hasSavedIdea)
+        {
+            ResetDraft();
+        }
+
+        CurrentPage = AppPage.Wizard;
+        WizardMessage = "Select a platform or leave the step empty.";
     }
 
     private async Task LoadSelectedCatalogAsync(CancellationToken cancellationToken = default)
@@ -1052,7 +1083,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 Id = _draftIdeaId,
                 NameEnglish = name,
-                Stage = GameIdeaStage.Idea,
+                Stage = SelectedDevelopmentStage,
                 PoolGroup = _selectedPlatform?.PlatformPoolGroup ?? PlatformPoolGroup.Other,
                 Platform = ToSnapshot(_selectedPlatform),
                 Genre = ToSnapshot(SelectedGenre),
@@ -1139,6 +1170,139 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    public async Task LoadSelectedIdeaForEditingAsync(CancellationToken cancellationToken = default)
+    {
+        if (SelectedSavedIdea is not { } selectedIdea)
+        {
+            SetIdeaPoolActionMessage("Select an idea before editing it.");
+            return;
+        }
+
+        if (_gameIdeaRepository is null)
+        {
+            SetIdeaPoolActionMessage("Idea editing is unavailable in preview mode.");
+            return;
+        }
+
+        if (IsIdeaPoolActionRunning)
+        {
+            return;
+        }
+
+        _isLoadingIdea = true;
+        NotifyIdeaPoolSelectionActionsChanged();
+        try
+        {
+            var idea = await _gameIdeaRepository.GetByIdAsync(selectedIdea.Id, cancellationToken)
+                ?? throw new InvalidOperationException("The selected idea could not be found.");
+            LoadIdeaIntoDraft(idea);
+            _wizardStep = 1;
+            CurrentPage = AppPage.Wizard;
+            NotifyWizardStepChanged();
+            WizardMessage = $"{idea.NameEnglish} is open for editing. Saving will update the existing idea.";
+        }
+        catch (OperationCanceledException)
+        {
+            SetIdeaPoolActionMessage("Opening the idea was canceled.");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        {
+            SetIdeaPoolActionMessage(exception.Message);
+        }
+        catch (Exception)
+        {
+            SetIdeaPoolActionMessage("The selected idea could not be opened. Try again.");
+        }
+        finally
+        {
+            _isLoadingIdea = false;
+            NotifyIdeaPoolSelectionActionsChanged();
+        }
+    }
+
+    public async Task DeleteSelectedIdeaAsync(CancellationToken cancellationToken = default)
+    {
+        if (SelectedSavedIdea is not { } selectedIdea)
+        {
+            SetIdeaPoolActionMessage("Select an idea before deleting it.");
+            return;
+        }
+
+        if (_gameIdeaRepository is null)
+        {
+            SetIdeaPoolActionMessage("Idea deletion is unavailable in preview mode.");
+            return;
+        }
+
+        if (IsIdeaPoolActionRunning)
+        {
+            return;
+        }
+
+        _isDeletingIdea = true;
+        NotifyIdeaPoolSelectionActionsChanged();
+        var ideaDeleted = false;
+        try
+        {
+            var idea = await _gameIdeaRepository.GetByIdAsync(selectedIdea.Id, cancellationToken)
+                ?? throw new InvalidOperationException("The selected idea could not be found.");
+            if (!await _gameIdeaRepository.DeleteAsync(idea.Id, cancellationToken))
+            {
+                throw new InvalidOperationException("The selected idea was already deleted.");
+            }
+            ideaDeleted = true;
+
+            var mediaCleanupFailures = 0;
+            if (_managedMediaStorage is not null)
+            {
+                foreach (var storedPath in idea.MediaAttachments
+                             .Select(attachment => attachment.StoredRelativePath)
+                             .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        await _managedMediaStorage.DeleteAsync(storedPath, CancellationToken.None);
+                    }
+                    catch
+                    {
+                        mediaCleanupFailures++;
+                    }
+                }
+            }
+
+            if (_draftIdeaId == idea.Id)
+            {
+                ResetDraft();
+            }
+
+            await LoadIdeaPoolAsync(CancellationToken.None);
+            SetIdeaPoolActionMessage(mediaCleanupFailures == 0
+                ? $"{idea.NameEnglish} was deleted."
+                : $"{idea.NameEnglish} was deleted, but {mediaCleanupFailures} managed media file(s) could not be removed.");
+        }
+        catch (OperationCanceledException) when (!ideaDeleted)
+        {
+            SetIdeaPoolActionMessage("Idea deletion was canceled.");
+        }
+        catch (Exception) when (ideaDeleted)
+        {
+            SetIdeaPoolActionMessage($"{selectedIdea.Name} was deleted, but the idea pool could not be refreshed.");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            SetIdeaPoolActionMessage(exception.Message);
+        }
+        catch (Exception)
+        {
+            SetIdeaPoolActionMessage("The selected idea could not be deleted. Try again.");
+        }
+        finally
+        {
+            _isDeletingIdea = false;
+            NotifyIdeaPoolSelectionActionsChanged();
+        }
+    }
+
     public async Task ExportSelectedIdeaPdfAsync(
         string destinationPath,
         CancellationToken cancellationToken = default)
@@ -1155,13 +1319,13 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        if (_isExportingPdf)
+        if (IsIdeaPoolActionRunning)
         {
             return;
         }
 
         _isExportingPdf = true;
-        OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+        NotifyIdeaPoolSelectionActionsChanged();
         try
         {
             var idea = await _gameIdeaRepository.GetByIdAsync(SelectedSavedIdea.Id, cancellationToken)
@@ -1184,7 +1348,7 @@ public sealed class MainWindowViewModel : ObservableObject
         finally
         {
             _isExportingPdf = false;
-            OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+            NotifyIdeaPoolSelectionActionsChanged();
         }
     }
 
@@ -1198,13 +1362,13 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        if (_isExportingWorkbook)
+        if (IsIdeaPoolActionRunning)
         {
             return;
         }
 
         _isExportingWorkbook = true;
-        OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
+        NotifyIdeaPoolSelectionActionsChanged();
         try
         {
             var ideas = await _gameIdeaRepository.GetAllAsync(cancellationToken);
@@ -1232,7 +1396,7 @@ public sealed class MainWindowViewModel : ObservableObject
         finally
         {
             _isExportingWorkbook = false;
-            OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
+            NotifyIdeaPoolSelectionActionsChanged();
         }
     }
 
@@ -1372,6 +1536,212 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         _ideaPoolActionMessage = message;
         OnPropertyChanged(nameof(IdeaPoolMessage));
+    }
+
+    private void NotifyIdeaPoolSelectionActionsChanged()
+    {
+        OnPropertyChanged(nameof(CanExportSelectedIdeaPdf));
+        OnPropertyChanged(nameof(CanExportAllIdeasWorkbook));
+        OnPropertyChanged(nameof(CanEditSelectedIdea));
+        OnPropertyChanged(nameof(CanDeleteSelectedIdea));
+    }
+
+    private void LoadIdeaIntoDraft(GameIdeaDocument idea)
+    {
+        _draftIdeaId = idea.Id;
+        _draftCreatedAtUtc = idea.CreatedAtUtc;
+        _hasSavedIdea = true;
+        _removedManagedMediaPaths.Clear();
+
+        GameName = idea.NameEnglish;
+        OverviewEnglish = idea.OverviewEnglish;
+        SelectedDevelopmentStage = idea.Stage;
+
+        _selectedPlatform = RestoreSingleChoice(
+            ActivePlatforms,
+            idea.Platform,
+            CatalogCategory.Platform,
+            platformPoolGroup: idea.PoolGroup);
+        SelectedPlatformName = _selectedPlatform?.Name ?? "None";
+
+        SelectedGenre = RestoreSingleChoice(Genres, idea.Genre, CatalogCategory.Genre);
+        SelectedSubgenre = RestoreSingleChoice(
+            _allSubgenres,
+            idea.Subgenre,
+            CatalogCategory.Subgenre,
+            parentOptionId: SelectedGenre?.Id);
+        RefreshAvailableSubgenres();
+
+        TopicPicker.RestoreSelections(idea.Topics);
+        FeaturePicker.RestoreSelections(idea.Features);
+        ArtStylePicker.RestoreSelections(idea.ArtStyles);
+        MechanicsPicker.RestoreSelections(idea.Mechanics);
+        SelectedDevelopmentDuration = RestoreSingleChoice(
+            DevelopmentDurationChoices,
+            idea.DevelopmentDuration,
+            CatalogCategory.DevelopmentDuration);
+        SelectedTeamSize = RestoreSingleChoice(
+            TeamSizeChoices,
+            idea.TeamSize,
+            CatalogCategory.TeamSize);
+
+        ReplaceReferences(idea.References);
+        MediaAttachments.Clear();
+        foreach (var attachment in idea.MediaAttachments.OrderBy(attachment => attachment.SortOrder))
+        {
+            var sourcePath = _managedMediaStorage?.GetFullPath(attachment.StoredRelativePath)
+                ?? attachment.StoredRelativePath;
+            MediaAttachments.Add(new DraftMediaAttachmentViewModel(
+                sourcePath,
+                attachment.FileName,
+                attachment.MediaType,
+                attachment.Id,
+                attachment.StoredRelativePath,
+                attachment.CaptionEnglish));
+        }
+
+        var defaultGuidance = CreateDefaultGddSections()
+            .ToDictionary(section => section.Title, section => section.Guidance, StringComparer.OrdinalIgnoreCase);
+        var sections = idea.Sections.Count == 0
+            ? CreateDefaultGddSections()
+            : new ObservableCollection<GddSectionDraftViewModel>(idea.Sections
+                .OrderBy(section => section.SortOrder)
+                .Select(section => new GddSectionDraftViewModel(
+                    section.TitleEnglish,
+                    defaultGuidance.GetValueOrDefault(
+                        section.TitleEnglish,
+                        "Describe the decisions and constraints for this section."),
+                    section.SortOrder,
+                    section.Id,
+                    section.ContentEnglish)));
+        ReplaceGddSections(sections);
+
+        OnPropertyChanged(nameof(WizardNextLabel));
+        OnPropertyChanged(nameof(WizardSelectionSummary));
+    }
+
+    private void ResetDraft()
+    {
+        _draftIdeaId = Guid.NewGuid();
+        _draftCreatedAtUtc = DateTime.UtcNow;
+        _hasSavedIdea = false;
+        _removedManagedMediaPaths.Clear();
+        GameName = "NewGame";
+        OverviewEnglish = string.Empty;
+        SelectedDevelopmentStage = GameIdeaStage.Idea;
+        _selectedPlatform = RestoreSingleChoice(
+            ActivePlatforms,
+            null,
+            CatalogCategory.Platform);
+        SelectedPlatformName = "None";
+        SelectedGenre = RestoreSingleChoice(Genres, null, CatalogCategory.Genre);
+        SelectedSubgenre = RestoreSingleChoice(_allSubgenres, null, CatalogCategory.Subgenre);
+        RefreshAvailableSubgenres();
+        TopicPicker.RestoreSelections([]);
+        FeaturePicker.RestoreSelections([]);
+        ArtStylePicker.RestoreSelections([]);
+        MechanicsPicker.RestoreSelections([]);
+        SelectedDevelopmentDuration = RestoreSingleChoice(
+            DevelopmentDurationChoices,
+            null,
+            CatalogCategory.DevelopmentDuration);
+        SelectedTeamSize = RestoreSingleChoice(
+            TeamSizeChoices,
+            null,
+            CatalogCategory.TeamSize);
+        ReplaceReferences([]);
+        MediaAttachments.Clear();
+        ReplaceGddSections(CreateDefaultGddSections());
+        _wizardStep = 1;
+        NotifyWizardStepChanged();
+    }
+
+    private void ReplaceReferences(IEnumerable<GameReferenceContent> references)
+    {
+        foreach (var reference in References)
+        {
+            reference.Changed -= ReferenceChanged;
+        }
+
+        References.Clear();
+        foreach (var reference in references.OrderBy(reference => reference.SortOrder))
+        {
+            var viewModel = new GameReferenceViewModel(
+                reference.Id,
+                reference.Url ?? string.Empty,
+                reference.NoteEnglish);
+            viewModel.Changed += ReferenceChanged;
+            References.Add(viewModel);
+        }
+
+        if (References.Count == 0)
+        {
+            var blankReference = new GameReferenceViewModel();
+            blankReference.Changed += ReferenceChanged;
+            References.Add(blankReference);
+        }
+    }
+
+    private void ReplaceGddSections(IEnumerable<GddSectionDraftViewModel> sections)
+    {
+        foreach (var section in GddSections)
+        {
+            section.PropertyChanged -= GddSectionPropertyChanged;
+        }
+
+        GddSections.Clear();
+        foreach (var section in sections)
+        {
+            section.PropertyChanged += GddSectionPropertyChanged;
+            GddSections.Add(section);
+        }
+    }
+
+    private void GddSectionPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(GddSectionDraftViewModel.Content))
+        {
+            OnPropertyChanged(nameof(WizardSelectionSummary));
+        }
+    }
+
+    private static CatalogOptionViewModel? RestoreSingleChoice(
+        IList<CatalogOptionViewModel> choices,
+        CatalogSelectionSnapshot? snapshot,
+        CatalogCategory category,
+        Guid? parentOptionId = null,
+        PlatformPoolGroup platformPoolGroup = PlatformPoolGroup.Other)
+    {
+        for (var index = choices.Count - 1; index >= 0; index--)
+        {
+            choices[index].IsSelected = false;
+            if (!choices[index].IsActive)
+            {
+                choices.RemoveAt(index);
+            }
+        }
+
+        if (snapshot is null)
+        {
+            return null;
+        }
+
+        var selected = choices.SingleOrDefault(option => option.Id == snapshot.OptionId);
+        if (selected is null)
+        {
+            selected = new CatalogOptionViewModel(
+                snapshot.OptionId,
+                category,
+                snapshot.NameEnglish,
+                isBuiltIn: false,
+                isActive: false,
+                parentOptionId: parentOptionId,
+                platformPoolGroup: platformPoolGroup);
+            choices.Add(selected);
+        }
+
+        selected.IsSelected = true;
+        return selected;
     }
 
     private void RemoveReference(object? parameter)

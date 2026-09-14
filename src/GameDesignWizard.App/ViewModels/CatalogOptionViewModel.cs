@@ -76,8 +76,11 @@ public sealed class CatalogOptionViewModel : ObservableObject
 
             OnPropertyChanged(nameof(StateLabel));
             OnPropertyChanged(nameof(ToggleLabel));
+            OnPropertyChanged(nameof(SelectionName));
         }
     }
+
+    public string SelectionName => IsActive ? Name : $"{Name} (Archived)";
 
     public string StateLabel => IsActive ? "ACTIVE" : "ARCHIVED";
 

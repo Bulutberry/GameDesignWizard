@@ -6,9 +6,15 @@ public sealed class GameReferenceViewModel : ObservableObject
     private string _note = string.Empty;
     private string _validationMessage = string.Empty;
 
-    public GameReferenceViewModel()
+    public GameReferenceViewModel(
+        Guid? id = null,
+        string url = "",
+        string note = "")
     {
-        Id = Guid.NewGuid();
+        Id = id ?? Guid.NewGuid();
+        _url = url;
+        _note = note;
+        ValidateUrl();
     }
 
     public event EventHandler? Changed;

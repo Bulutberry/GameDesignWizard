@@ -3,11 +3,13 @@ namespace GameDesignWizard.App.ViewModels;
 public sealed class GddSectionDraftViewModel(
     string title,
     string guidance,
-    int sortOrder) : ObservableObject
+    int sortOrder,
+    Guid? id = null,
+    string content = "") : ObservableObject
 {
-    private string _content = string.Empty;
+    private string _content = content;
 
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; } = id ?? Guid.NewGuid();
 
     public string Title { get; } = title;
 

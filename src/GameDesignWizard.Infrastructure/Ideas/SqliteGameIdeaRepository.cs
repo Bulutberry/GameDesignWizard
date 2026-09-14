@@ -76,6 +76,25 @@ public sealed class SqliteGameIdeaRepository(AppDbContextFactory contextFactory)
               ?? throw new InvalidOperationException("A saved idea document is invalid.");
     }
 
+    public async Task<bool> DeleteAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.CreateDbContext();
+        await context.Database.MigrateAsync(cancellationToken);
+        var entity = await context.GameIdeas.SingleOrDefaultAsync(
+            idea => idea.Id == id,
+            cancellationToken);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        context.GameIdeas.Remove(entity);
+        await context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private static void Validate(GameIdeaDocument idea)
     {
         if (idea.Id == Guid.Empty)

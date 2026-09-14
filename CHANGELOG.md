@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0
+
+- Add Edit and Delete actions for the selected Idea Pool row.
+- Restore the complete saved snapshot into the six-step wizard and update the same record on save.
+- Preserve archived catalog selections while editing so older ideas do not lose historical values.
+- Allow Idea, Concept, Prototyping, Completed, and Shelved development stages to be selected in the final wizard step.
+- Recalculate PC, Mobile, or Other routing when an edited idea changes platform.
+- Preserve the original idea ID and creation timestamp while refreshing its update timestamp.
+- Confirm deletion in the UI and remove the idea's managed image and audio files after the database record is deleted.
+- Disable competing Idea Pool actions while an edit, delete, PDF export, or workbook export operation is running.
+- Start a clean, independently identified draft when Create Game Idea is chosen after saving or editing an idea.
+
 ## 0.12.0
 
 - Add complete XLSX export to the Idea Pool without requiring a row selection.
