@@ -14,7 +14,8 @@ public sealed class CatalogOptionViewModel : ObservableObject
         bool isBuiltIn,
         bool isActive = true,
         Guid? parentOptionId = null,
-        string? parentName = null)
+        string? parentName = null,
+        PlatformPoolGroup platformPoolGroup = PlatformPoolGroup.Other)
     {
         Id = id;
         Category = category;
@@ -23,6 +24,7 @@ public sealed class CatalogOptionViewModel : ObservableObject
         _isActive = isActive;
         ParentOptionId = parentOptionId;
         ParentName = parentName;
+        PlatformPoolGroup = platformPoolGroup;
     }
 
     public Guid Id { get; }
@@ -36,6 +38,8 @@ public sealed class CatalogOptionViewModel : ObservableObject
     public Guid? ParentOptionId { get; }
 
     public string? ParentName { get; }
+
+    public PlatformPoolGroup PlatformPoolGroup { get; }
 
     public string Badge
     {

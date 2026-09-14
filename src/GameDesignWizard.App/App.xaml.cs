@@ -2,6 +2,7 @@ using System.Windows;
 using GameDesignWizard.App.ViewModels;
 using GameDesignWizard.Infrastructure.Catalog;
 using GameDesignWizard.Infrastructure.Data;
+using GameDesignWizard.Infrastructure.Ideas;
 
 namespace GameDesignWizard.App;
 
@@ -13,8 +14,10 @@ public partial class App : Application
 
         try
         {
-            var repository = new SqliteCatalogRepository(new AppDbContextFactory());
-            var viewModel = new MainWindowViewModel(repository, new CatalogFileReader());
+            var contextFactory = new AppDbContextFactory();
+            var repository = new SqliteCatalogRepository(contextFactory);
+            var ideaRepository = new SqliteGameIdeaRepository(contextFactory);
+            var viewModel = new MainWindowViewModel(repository, new CatalogFileReader(), ideaRepository);
             await viewModel.InitializeAsync();
 
             MainWindow = new MainWindow(viewModel);

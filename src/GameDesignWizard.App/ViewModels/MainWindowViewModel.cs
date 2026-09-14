@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using GameDesignWizard.Core.Catalog;
+using GameDesignWizard.Core.Ideas;
 
 namespace GameDesignWizard.App.ViewModels;
 
@@ -10,6 +11,7 @@ public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly ICatalogRepository? _catalogRepository;
     private readonly ICatalogFileReader? _catalogFileReader;
+    private readonly IGameIdeaRepository? _gameIdeaRepository;
     private readonly List<CatalogOptionViewModel> _allSubgenres = [];
     private AppPage _currentPage = AppPage.Home;
     private CatalogCategoryItemViewModel _selectedCatalogCategory;
@@ -21,24 +23,41 @@ public sealed class MainWindowViewModel : ObservableObject
     private int _wizardStep = 1;
     private CatalogOptionViewModel? _selectedGenre;
     private CatalogOptionViewModel? _selectedSubgenre;
+    private CatalogOptionViewModel? _selectedPlatform;
+    private CatalogOptionViewModel? _selectedDevelopmentDuration;
+    private CatalogOptionViewModel? _selectedTeamSize;
+    private string _gameName = "NewGame";
+    private string _overviewEnglish = string.Empty;
+    private readonly Guid _draftIdeaId = Guid.NewGuid();
+    private readonly DateTime _draftCreatedAtUtc = DateTime.UtcNow;
+    private bool _hasSavedIdea;
     private bool _isInitialized;
 
     public MainWindowViewModel()
-        : this(null, null)
+        : this(null, null, null)
     {
     }
 
     public MainWindowViewModel(ICatalogRepository? catalogRepository)
-        : this(catalogRepository, null)
+        : this(catalogRepository, null, null)
     {
     }
 
     public MainWindowViewModel(
         ICatalogRepository? catalogRepository,
         ICatalogFileReader? catalogFileReader)
+        : this(catalogRepository, catalogFileReader, null)
+    {
+    }
+
+    public MainWindowViewModel(
+        ICatalogRepository? catalogRepository,
+        ICatalogFileReader? catalogFileReader,
+        IGameIdeaRepository? gameIdeaRepository)
     {
         _catalogRepository = catalogRepository;
         _catalogFileReader = catalogFileReader;
+        _gameIdeaRepository = gameIdeaRepository;
         CatalogCategories =
         [
             new(CatalogCategory.Platform, "Platforms", "Platform"),
@@ -59,6 +78,20 @@ public sealed class MainWindowViewModel : ObservableObject
         Genres = [];
         AvailableSubgenres = [];
         References = [];
+        DevelopmentDurationChoices = [];
+        TeamSizeChoices = [];
+        GddSections = CreateDefaultGddSections();
+        SavedIdeas = [];
+        foreach (var section in GddSections)
+        {
+            section.PropertyChanged += (_, eventArgs) =>
+            {
+                if (eventArgs.PropertyName == nameof(GddSectionDraftViewModel.Content))
+                {
+                    OnPropertyChanged(nameof(WizardSelectionSummary));
+                }
+            };
+        }
         TopicPicker = new DualListPickerViewModel("Topics", CatalogCategory.Topic);
         FeaturePicker = new DualListPickerViewModel("Features", CatalogCategory.Feature);
         ArtStylePicker = new DualListPickerViewModel("Art styles", CatalogCategory.ArtStyle);
@@ -90,7 +123,9 @@ public sealed class MainWindowViewModel : ObservableObject
         RemoveTopicCommand = TopicPicker.RemoveCommand;
         AddReferenceCommand = new RelayCommand(_ => AddReference());
         RemoveReferenceCommand = new RelayCommand(RemoveReference);
-        WizardNextCommand = new RelayCommand(_ => MoveWizardNext());
+        ClearDevelopmentDurationCommand = new RelayCommand(_ => SelectedDevelopmentDuration = null);
+        ClearTeamSizeCommand = new RelayCommand(_ => SelectedTeamSize = null);
+        WizardNextCommand = new AsyncRelayCommand(_ => MoveWizardNextAsync());
         WizardPreviousCommand = new RelayCommand(_ => MoveWizardPrevious());
     }
 
@@ -109,6 +144,14 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<CatalogOptionViewModel> AvailableSubgenres { get; }
 
     public ObservableCollection<GameReferenceViewModel> References { get; }
+
+    public ObservableCollection<CatalogOptionViewModel> DevelopmentDurationChoices { get; }
+
+    public ObservableCollection<CatalogOptionViewModel> TeamSizeChoices { get; }
+
+    public ObservableCollection<GddSectionDraftViewModel> GddSections { get; }
+
+    public ObservableCollection<GameIdeaListItemViewModel> SavedIdeas { get; }
 
     public ObservableCollection<CatalogOptionViewModel> AvailableTopics => TopicPicker.AvailableOptions;
 
@@ -147,6 +190,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public ICommand AddReferenceCommand { get; }
 
     public ICommand RemoveReferenceCommand { get; }
+
+    public ICommand ClearDevelopmentDurationCommand { get; }
+
+    public ICommand ClearTeamSizeCommand { get; }
 
     public ICommand WizardNextCommand { get; }
 
@@ -190,6 +237,36 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _selectedPlatformName;
         private set => SetProperty(ref _selectedPlatformName, value);
+    }
+
+    public string GameName
+    {
+        get => _gameName;
+        set
+        {
+            if (SetProperty(ref _gameName, value))
+            {
+                OnPropertyChanged(nameof(WizardSelectionSummary));
+            }
+        }
+    }
+
+    public string OverviewEnglish
+    {
+        get => _overviewEnglish;
+        set => SetProperty(ref _overviewEnglish, value);
+    }
+
+    public CatalogOptionViewModel? SelectedDevelopmentDuration
+    {
+        get => _selectedDevelopmentDuration;
+        set => SetProperty(ref _selectedDevelopmentDuration, value);
+    }
+
+    public CatalogOptionViewModel? SelectedTeamSize
+    {
+        get => _selectedTeamSize;
+        set => SetProperty(ref _selectedTeamSize, value);
     }
 
     public string SettingsMessage
@@ -248,6 +325,7 @@ public sealed class MainWindowViewModel : ObservableObject
         3 => "Choose features and art styles",
         4 => "Choose gameplay mechanics",
         5 => "Add design references",
+        6 => "Describe and save your game",
         _ => "Create your game idea"
     };
 
@@ -258,6 +336,7 @@ public sealed class MainWindowViewModel : ObservableObject
         3 => "Choose any number of features and art styles. Double-click or press Enter to move an item.",
         4 => "Choose any number of mechanics. Double-click or press Enter to move an item.",
         5 => "Add useful links and notes. Empty rows will be ignored when the idea is saved.",
+        6 => "Name the idea, define its production scope, and write any GDD sections that help.",
         _ => "Complete this step or leave it empty and continue."
     };
 
@@ -270,6 +349,7 @@ public sealed class MainWindowViewModel : ObservableObject
         3 => "Continue to Step 4",
         4 => "Continue to Step 5",
         5 => "Continue to Step 6",
+        6 => _hasSavedIdea ? "Save Changes" : "Save Idea",
         _ => "Continue"
     };
 
@@ -282,6 +362,7 @@ public sealed class MainWindowViewModel : ObservableObject
         3 => $"Features: {FeaturePicker.SelectedOptions.Count} · Art styles: {ArtStylePicker.SelectedOptions.Count}",
         4 => $"Mechanics: {MechanicsPicker.SelectedOptions.Count}",
         5 => $"References: {References.Count(reference => !reference.IsBlank)}",
+        6 => $"Game: {NormalizeGameName(GameName)} · GDD sections: {GddSections.Count(section => !string.IsNullOrWhiteSpace(section.Content))}",
         _ => string.Empty
     };
 
@@ -295,6 +376,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public Visibility WizardStepFiveVisibility => _wizardStep == 5 ? Visibility.Visible : Visibility.Collapsed;
 
+    public Visibility WizardStepSixVisibility => _wizardStep == 6 ? Visibility.Visible : Visibility.Collapsed;
+
     public string WizardSecondProgressColor => _wizardStep >= 2 ? "#6C5CE7" : "#E1E3EC";
 
     public string WizardThirdProgressColor => _wizardStep >= 3 ? "#6C5CE7" : "#E1E3EC";
@@ -302,6 +385,18 @@ public sealed class MainWindowViewModel : ObservableObject
     public string WizardFourthProgressColor => _wizardStep >= 4 ? "#6C5CE7" : "#E1E3EC";
 
     public string WizardFifthProgressColor => _wizardStep >= 5 ? "#6C5CE7" : "#E1E3EC";
+
+    public string WizardSixthProgressColor => _wizardStep >= 6 ? "#6C5CE7" : "#E1E3EC";
+
+    public int PcIdeaCount => SavedIdeas.Count(idea => idea.PoolGroup == PlatformPoolGroup.Pc);
+
+    public int MobileIdeaCount => SavedIdeas.Count(idea => idea.PoolGroup == PlatformPoolGroup.Mobile);
+
+    public int OtherIdeaCount => SavedIdeas.Count(idea => idea.PoolGroup == PlatformPoolGroup.Other);
+
+    public string IdeaPoolMessage => SavedIdeas.Count == 0
+        ? "No saved ideas yet. Complete the wizard to create the first one."
+        : $"{SavedIdeas.Count} saved idea(s), ordered by the most recent update.";
 
     public string CatalogHeading => $"Manage {SelectedCatalogCategory.DisplayName.ToLowerInvariant()}";
 
@@ -339,6 +434,7 @@ public sealed class MainWindowViewModel : ObservableObject
         await _catalogRepository.InitializeAsync(cancellationToken);
         await LoadPlatformsAsync(cancellationToken);
         await LoadWizardCatalogsAsync(cancellationToken);
+        await LoadIdeaPoolAsync(cancellationToken);
         _isInitialized = true;
         await LoadSelectedCatalogAsync(cancellationToken);
     }
@@ -514,6 +610,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        var selectedPlatformId = _selectedPlatform?.Id;
         var platforms = await _catalogRepository.GetOptionsAsync(CatalogCategory.Platform, cancellationToken);
         Platforms.Clear();
         foreach (var platform in platforms)
@@ -522,6 +619,16 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         RebuildActivePlatforms();
+        _selectedPlatform = ActivePlatforms.SingleOrDefault(platform => platform.Id == selectedPlatformId);
+        if (_selectedPlatform is not null)
+        {
+            _selectedPlatform.IsSelected = true;
+            SelectedPlatformName = _selectedPlatform.Name;
+        }
+        else if (selectedPlatformId is not null)
+        {
+            SelectedPlatformName = "None";
+        }
     }
 
     private async Task LoadWizardCatalogsAsync(CancellationToken cancellationToken = default)
@@ -537,6 +644,10 @@ public sealed class MainWindowViewModel : ObservableObject
         var features = await _catalogRepository.GetOptionsAsync(CatalogCategory.Feature, cancellationToken);
         var artStyles = await _catalogRepository.GetOptionsAsync(CatalogCategory.ArtStyle, cancellationToken);
         var mechanics = await _catalogRepository.GetOptionsAsync(CatalogCategory.Mechanic, cancellationToken);
+        var developmentDurations = await _catalogRepository.GetOptionsAsync(
+            CatalogCategory.DevelopmentDuration,
+            cancellationToken);
+        var teamSizes = await _catalogRepository.GetOptionsAsync(CatalogCategory.TeamSize, cancellationToken);
 
         Genres.Clear();
         foreach (var genre in genres.Where(option => option.IsActive))
@@ -550,6 +661,14 @@ public sealed class MainWindowViewModel : ObservableObject
         FeaturePicker.LoadOptions(features.Select(option => ToViewModel(option)));
         ArtStylePicker.LoadOptions(artStyles.Select(option => ToViewModel(option)));
         MechanicsPicker.LoadOptions(mechanics.Select(option => ToViewModel(option)));
+        SelectedDevelopmentDuration = RefreshSingleChoiceCatalog(
+            DevelopmentDurationChoices,
+            developmentDurations,
+            SelectedDevelopmentDuration?.Id);
+        SelectedTeamSize = RefreshSingleChoiceCatalog(
+            TeamSizeChoices,
+            teamSizes,
+            SelectedTeamSize?.Id);
 
         if (SelectedGenre is not null)
         {
@@ -652,8 +771,9 @@ public sealed class MainWindowViewModel : ObservableObject
                 var platform = Platforms.Single(candidate => candidate.Id == option.Id);
                 platform.IsActive = newState;
                 RebuildActivePlatforms();
-                if (!newState && SelectedPlatformName == platform.Name)
+                if (!newState && _selectedPlatform?.Id == platform.Id)
                 {
+                    _selectedPlatform = null;
                     SelectedPlatformName = "None";
                 }
             }
@@ -688,6 +808,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 option.IsSelected = option.Id == platform.Id;
             }
 
+            _selectedPlatform = platform;
             SelectedPlatformName = platform.Name;
             OnPropertyChanged(nameof(WizardSelectionSummary));
         }
@@ -751,9 +872,15 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
-    private void MoveWizardNext()
+    private async Task MoveWizardNextAsync()
     {
-        if (_wizardStep < 5)
+        if (_wizardStep == 5 && References.Any(reference => reference.HasValidationError))
+        {
+            WizardMessage = "Fix the highlighted reference URLs before continuing.";
+            return;
+        }
+
+        if (_wizardStep < 6)
         {
             _wizardStep++;
             WizardMessage = _wizardStep switch
@@ -762,19 +889,14 @@ public sealed class MainWindowViewModel : ObservableObject
                 3 => "Choose features and art styles, or leave either list empty.",
                 4 => "Choose gameplay mechanics, or leave this list empty.",
                 5 => "Add links and notes, or leave the reference list empty.",
+                6 => "Complete any useful fields, then save the idea to your local workspace.",
                 _ => string.Empty
             };
             NotifyWizardStepChanged();
             return;
         }
 
-        if (References.Any(reference => reference.HasValidationError))
-        {
-            WizardMessage = "Fix the highlighted reference URLs before continuing.";
-            return;
-        }
-
-        WizardMessage = "Step 6 will be added after this references prototype is approved.";
+        await SaveIdeaAsync();
     }
 
     private void MoveWizardPrevious()
@@ -792,6 +914,7 @@ public sealed class MainWindowViewModel : ObservableObject
             2 => "Choose one genre, an optional subgenre, and any number of topics.",
             3 => "Choose features and art styles, or leave either list empty.",
             4 => "Choose gameplay mechanics, or leave this list empty.",
+            5 => "Add links and notes, or leave the reference list empty.",
             _ => string.Empty
         };
         NotifyWizardStepChanged();
@@ -810,10 +933,80 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(WizardStepThreeVisibility));
         OnPropertyChanged(nameof(WizardStepFourVisibility));
         OnPropertyChanged(nameof(WizardStepFiveVisibility));
+        OnPropertyChanged(nameof(WizardStepSixVisibility));
         OnPropertyChanged(nameof(WizardSecondProgressColor));
         OnPropertyChanged(nameof(WizardThirdProgressColor));
         OnPropertyChanged(nameof(WizardFourthProgressColor));
         OnPropertyChanged(nameof(WizardFifthProgressColor));
+        OnPropertyChanged(nameof(WizardSixthProgressColor));
+    }
+
+    public async Task SaveIdeaAsync(CancellationToken cancellationToken = default)
+    {
+        if (_gameIdeaRepository is null)
+        {
+            WizardMessage = "Idea saving is unavailable in preview mode.";
+            return;
+        }
+
+        if (References.Any(reference => reference.HasValidationError))
+        {
+            WizardMessage = "Fix the highlighted reference URLs before saving.";
+            return;
+        }
+
+        try
+        {
+            var name = NormalizeGameName(GameName);
+            GameName = name;
+            var document = new GameIdeaDocument
+            {
+                Id = _draftIdeaId,
+                NameEnglish = name,
+                Stage = GameIdeaStage.Idea,
+                PoolGroup = _selectedPlatform?.PlatformPoolGroup ?? PlatformPoolGroup.Other,
+                Platform = ToSnapshot(_selectedPlatform),
+                Genre = ToSnapshot(SelectedGenre),
+                Subgenre = ToSnapshot(SelectedSubgenre),
+                Topics = SelectedTopics.Select(ToSnapshot).OfType<CatalogSelectionSnapshot>().ToList(),
+                Features = FeaturePicker.SelectedOptions.Select(ToSnapshot).OfType<CatalogSelectionSnapshot>().ToList(),
+                ArtStyles = ArtStylePicker.SelectedOptions.Select(ToSnapshot).OfType<CatalogSelectionSnapshot>().ToList(),
+                Mechanics = MechanicsPicker.SelectedOptions.Select(ToSnapshot).OfType<CatalogSelectionSnapshot>().ToList(),
+                DevelopmentDuration = ToSnapshot(SelectedDevelopmentDuration),
+                TeamSize = ToSnapshot(SelectedTeamSize),
+                OverviewEnglish = OverviewEnglish.Trim(),
+                Sections = GddSections.Select(section => new GddSectionContent(
+                    section.Id,
+                    section.Title,
+                    section.Content.Trim(),
+                    section.SortOrder)).ToList(),
+                References = References
+                    .Where(reference => !reference.IsBlank)
+                    .Select((reference, index) => new GameReferenceContent(
+                        reference.Id,
+                        string.IsNullOrWhiteSpace(reference.Url) ? null : reference.Url.Trim(),
+                        reference.Note.Trim(),
+                        index))
+                    .ToList(),
+                CreatedAtUtc = _draftCreatedAtUtc,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+
+            await _gameIdeaRepository.SaveAsync(document, cancellationToken);
+            _hasSavedIdea = true;
+            await LoadIdeaPoolAsync(cancellationToken);
+            OnPropertyChanged(nameof(WizardNextLabel));
+            OnPropertyChanged(nameof(WizardSelectionSummary));
+            WizardMessage = $"{name} was saved to the {GetPoolLabel(document.PoolGroup)} idea pool.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            WizardMessage = exception.Message;
+        }
+        catch (Exception)
+        {
+            WizardMessage = "The idea could not be saved. Try again.";
+        }
     }
 
     private void AddReference()
@@ -826,6 +1019,26 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             WizardMessage = "A new reference row was added.";
         }
+    }
+
+    private async Task LoadIdeaPoolAsync(CancellationToken cancellationToken = default)
+    {
+        if (_gameIdeaRepository is null)
+        {
+            return;
+        }
+
+        var ideas = await _gameIdeaRepository.GetAllAsync(cancellationToken);
+        SavedIdeas.Clear();
+        foreach (var idea in ideas)
+        {
+            SavedIdeas.Add(new GameIdeaListItemViewModel(idea));
+        }
+
+        OnPropertyChanged(nameof(PcIdeaCount));
+        OnPropertyChanged(nameof(MobileIdeaCount));
+        OnPropertyChanged(nameof(OtherIdeaCount));
+        OnPropertyChanged(nameof(IdeaPoolMessage));
     }
 
     private void RemoveReference(object? parameter)
@@ -865,12 +1078,14 @@ public sealed class MainWindowViewModel : ObservableObject
         CatalogCategory.Topic or
         CatalogCategory.Mechanic or
         CatalogCategory.Feature or
-        CatalogCategory.ArtStyle;
+        CatalogCategory.ArtStyle or
+        CatalogCategory.DevelopmentDuration or
+        CatalogCategory.TeamSize;
 
     private void AddPreviewPlatforms()
     {
-        AddPreviewPlatform("0d3034e8-e927-4a2f-a96f-ae610a47fb2f", "PC");
-        AddPreviewPlatform("db7d530a-5cb9-411c-bb8e-7006282f63d7", "Mobile");
+        AddPreviewPlatform("0d3034e8-e927-4a2f-a96f-ae610a47fb2f", "PC", PlatformPoolGroup.Pc);
+        AddPreviewPlatform("db7d530a-5cb9-411c-bb8e-7006282f63d7", "Mobile", PlatformPoolGroup.Mobile);
         AddPreviewPlatform("1826ccb8-23f3-44a8-af8c-538d25e7e036", "Console");
         AddPreviewPlatform("ec646f17-5476-4d76-992e-223d4b4d392b", "VR");
         AddPreviewPlatform("e0cb0941-ddc3-4b03-956f-7824da01c224", "Board Game");
@@ -882,8 +1097,16 @@ public sealed class MainWindowViewModel : ObservableObject
         RebuildActivePlatforms();
     }
 
-    private void AddPreviewPlatform(string id, string name) =>
-        Platforms.Add(new CatalogOptionViewModel(Guid.Parse(id), CatalogCategory.Platform, name, true));
+    private void AddPreviewPlatform(
+        string id,
+        string name,
+        PlatformPoolGroup poolGroup = PlatformPoolGroup.Other) =>
+        Platforms.Add(new CatalogOptionViewModel(
+            Guid.Parse(id),
+            CatalogCategory.Platform,
+            name,
+            true,
+            platformPoolGroup: poolGroup));
 
     private void RebuildActivePlatforms()
     {
@@ -896,7 +1119,64 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private static CatalogOptionViewModel ToViewModel(CatalogOption option, string? parentName = null) =>
         new(option.Id, option.Category, option.NameEnglish, option.IsBuiltIn, option.IsActive,
-            option.ParentOptionId, parentName);
+            option.ParentOptionId, parentName, option.PlatformPoolGroup);
+
+    private static CatalogOptionViewModel? RefreshSingleChoiceCatalog(
+        ObservableCollection<CatalogOptionViewModel> target,
+        IEnumerable<CatalogOption> options,
+        Guid? selectedId)
+    {
+        target.Clear();
+        foreach (var option in options.Where(option => option.IsActive))
+        {
+            target.Add(ToViewModel(option));
+        }
+
+        return target.SingleOrDefault(option => option.Id == selectedId);
+    }
+
+    private static CatalogSelectionSnapshot? ToSnapshot(CatalogOptionViewModel? option) => option is null
+        ? null
+        : new CatalogSelectionSnapshot(option.Id, option.Name);
+
+    private static string NormalizeGameName(string value)
+    {
+        var normalized = string.Join(' ', value.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        if (normalized.Length == 0)
+        {
+            return "NewGame";
+        }
+
+        if (normalized.Length > 200)
+        {
+            throw new InvalidOperationException("The game name must contain 200 characters or fewer.");
+        }
+
+        return normalized;
+    }
+
+    private static string GetPoolLabel(PlatformPoolGroup poolGroup) => poolGroup switch
+    {
+        PlatformPoolGroup.Pc => "PC",
+        PlatformPoolGroup.Mobile => "Mobile",
+        _ => "Other"
+    };
+
+    private static ObservableCollection<GddSectionDraftViewModel> CreateDefaultGddSections() =>
+    [
+        new("Design Pillars", "Define the few principles that every major design decision should support.", 0),
+        new("Target Platform and Audience", "Describe the intended players, play context, and platform-specific constraints.", 1),
+        new("Genre and Themes", "Explain the genre promise, tone, themes, and emotional goals.", 2),
+        new("Core Gameplay Loop", "Describe what the player repeatedly does and why the loop remains engaging.", 3),
+        new("Mechanics and Systems", "Explain the rules, interactions, resources, and connected systems.", 4),
+        new("Progression", "Describe how challenge, abilities, content, and player mastery develop over time.", 5),
+        new("Characters", "Record important characters, roles, motivations, and relationships.", 6),
+        new("World and Lore", "Describe the setting, locations, history, factions, and world rules.", 7),
+        new("Art Direction", "Define the visual language, mood, readability goals, and key references.", 8),
+        new("Technical Features", "Record important technical requirements, tools, integrations, and constraints.", 9),
+        new("Production Scope", "Set boundaries, milestones, priorities, and assumptions for production.", 10),
+        new("Risks and Open Questions", "Track unresolved decisions, design risks, and validation work.", 11)
+    ];
 
     private static string CleanPreviewName(string value)
     {

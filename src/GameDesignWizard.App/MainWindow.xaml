@@ -51,7 +51,7 @@
                     <StackPanel>
                         <TextBlock Text="LOCAL WORKSPACE" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11" FontWeight="Bold" />
                         <TextBlock Text="Offline and private" Foreground="White" FontSize="12" Margin="0,5,0,0" />
-                        <TextBlock Text="Prototype 0.8.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
+                        <TextBlock Text="Prototype 0.9.0" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="12" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -167,7 +167,7 @@
                     <Border Grid.Column="2" Height="5" Background="{Binding WizardThirdProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="3" Height="5" Background="{Binding WizardFourthProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                     <Border Grid.Column="4" Height="5" Background="{Binding WizardFifthProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
-                    <Border Grid.Column="5" Height="5" Background="#E1E3EC" CornerRadius="3" Margin="4,0,0,0" />
+                    <Border Grid.Column="5" Height="5" Background="{Binding WizardSixthProgressColor}" CornerRadius="3" Margin="4,0,0,0" />
                 </Grid>
 
                 <ScrollViewer Grid.Row="2" Margin="0,35,0,20" VerticalScrollBarVisibility="Auto"
@@ -367,6 +367,86 @@
                     </StackPanel>
                 </ScrollViewer>
 
+                <ScrollViewer Grid.Row="2" Margin="0,28,0,20" VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding WizardStepSixVisibility}">
+                    <StackPanel>
+                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="12" Padding="20" Margin="0,0,0,14">
+                            <StackPanel>
+                                <TextBlock Text="Core details" FontFamily="Segoe UI Semibold" FontSize="18" />
+                                <TextBlock Text="Game name" FontWeight="SemiBold" FontSize="12" Margin="2,16,0,6" />
+                                <TextBox Style="{StaticResource InputStyle}" Text="{Binding GameName, UpdateSourceTrigger=PropertyChanged}"
+                                         MaxLength="200" AutomationProperties.Name="Game name" />
+
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Estimated development duration" FontWeight="SemiBold" FontSize="12" Margin="2,0,0,6" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox ItemsSource="{Binding DevelopmentDurationChoices}"
+                                                      SelectedItem="{Binding SelectedDevelopmentDuration}"
+                                                      DisplayMemberPath="Name" Height="42" Padding="10,5" FontSize="14"
+                                                      AutomationProperties.Name="Estimated development duration" />
+                                            <Button Grid.Column="1" Content="Clear" Style="{StaticResource SecondaryButtonStyle}"
+                                                    Command="{Binding ClearDevelopmentDurationCommand}" Padding="12,8" Margin="8,0,0,0" />
+                                        </Grid>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Team size" FontWeight="SemiBold" FontSize="12" Margin="2,0,0,6" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox ItemsSource="{Binding TeamSizeChoices}"
+                                                      SelectedItem="{Binding SelectedTeamSize}"
+                                                      DisplayMemberPath="Name" Height="42" Padding="10,5" FontSize="14"
+                                                      AutomationProperties.Name="Team size" />
+                                            <Button Grid.Column="1" Content="Clear" Style="{StaticResource SecondaryButtonStyle}"
+                                                    Command="{Binding ClearTeamSizeCommand}" Padding="12,8" Margin="8,0,0,0" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="Overview" FontWeight="SemiBold" FontSize="12" Margin="2,16,0,6" />
+                                <TextBox Style="{StaticResource InputStyle}" Text="{Binding OverviewEnglish, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Height="110"
+                                         AutomationProperties.Name="Game overview" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Game design document" FontFamily="Segoe UI Semibold" FontSize="18" Margin="0,8,0,0" />
+                        <TextBlock Text="Open only the sections you need. Empty sections remain optional."
+                                   Foreground="{StaticResource MutedInkBrush}" FontSize="12" Margin="0,5,0,12" />
+                        <ItemsControl ItemsSource="{Binding GddSections}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Expander Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                              Margin="0,0,0,9" Padding="15,12">
+                                        <Expander.Header>
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" />
+                                        </Expander.Header>
+                                        <StackPanel Margin="0,12,0,2">
+                                            <TextBlock Text="{Binding Guidance}" Foreground="{StaticResource MutedInkBrush}"
+                                                       FontSize="12" TextWrapping="Wrap" Margin="0,0,0,9" />
+                                            <TextBox Style="{StaticResource InputStyle}" Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                                                     AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Height="120" />
+                                        </StackPanel>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+
                 <Grid Grid.Row="3">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -384,23 +464,63 @@
             </Grid>
 
             <Grid Visibility="{Binding PoolVisibility}">
-                <StackPanel>
-                    <TextBlock Text="IDEA POOL" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="11" />
-                    <TextBlock Text="Find your game ideas" FontFamily="Segoe UI Semibold" FontSize="32" Margin="0,8,0,0" />
-                    <TextBlock Text="Every custom platform will be organized under Other while keeping its actual name."
-                               Foreground="{StaticResource MutedInkBrush}" FontSize="14" Margin="0,8,0,35" />
-                    <UniformGrid Columns="3">
-                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="24" Height="170" Margin="0,0,14,0">
-                            <StackPanel><TextBlock Text="PC" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="Desktop game ideas" Foreground="{StaticResource MutedInkBrush}" Margin="0,8,0,0" /></StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="IDEA POOL" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="11" />
+                        <TextBlock Text="Find your game ideas" FontFamily="Segoe UI Semibold" FontSize="32" Margin="0,8,0,0" />
+                        <TextBlock Text="Every custom platform is organized under Other while keeping its actual name."
+                                   Foreground="{StaticResource MutedInkBrush}" FontSize="14" Margin="0,8,0,0" />
+                    </StackPanel>
+
+                    <UniformGrid Grid.Row="1" Columns="3" Margin="0,26,0,22">
+                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18" Margin="0,0,10,0">
+                            <StackPanel>
+                                <TextBlock Text="PC" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding PcIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
+                            </StackPanel>
                         </Border>
-                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="24" Height="170" Margin="7,0">
-                            <StackPanel><TextBlock Text="Mobile" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="Phone and tablet ideas" Foreground="{StaticResource MutedInkBrush}" Margin="0,8,0,0" /></StackPanel>
+                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18" Margin="5,0">
+                            <StackPanel>
+                                <TextBlock Text="Mobile" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding MobileIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
+                            </StackPanel>
                         </Border>
-                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="24" Height="170" Margin="14,0,0,0">
-                            <StackPanel><TextBlock Text="Other" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="Console, VR, board game, and custom platforms" Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" Margin="0,8,0,0" /></StackPanel>
+                        <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18" Margin="10,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Other" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding OtherIdeaCount}" Foreground="{StaticResource AccentBrush}" FontSize="25" FontWeight="Bold" Margin="0,6,0,0" />
+                            </StackPanel>
                         </Border>
                     </UniformGrid>
-                </StackPanel>
+
+                    <Grid Grid.Row="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{Binding IdeaPoolMessage}" Foreground="{StaticResource MutedInkBrush}" FontSize="12" Margin="2,0,0,9" />
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding SavedIdeas}" AutoGenerateColumns="False" IsReadOnly="True"
+                                  CanUserAddRows="False" CanUserDeleteRows="False" GridLinesVisibility="Horizontal"
+                                  HeadersVisibility="Column" Background="White" BorderBrush="{StaticResource BorderBrush}"
+                                  BorderThickness="1" RowHeight="44" ColumnHeaderHeight="38">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="170" />
+                                <DataGridTextColumn Header="Pool" Binding="{Binding PoolName}" Width="65" />
+                                <DataGridTextColumn Header="Platform" Binding="{Binding Platform}" Width="105" />
+                                <DataGridTextColumn Header="Genre" Binding="{Binding Genre}" Width="105" />
+                                <DataGridTextColumn Header="Duration" Binding="{Binding Duration}" Width="125" />
+                                <DataGridTextColumn Header="Team size" Binding="{Binding TeamSize}" Width="100" />
+                                <DataGridTextColumn Header="Stage" Binding="{Binding Stage}" Width="80" />
+                                <DataGridTextColumn Header="Updated" Binding="{Binding Updated}" Width="125" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
             </Grid>
 
             <Grid Visibility="{Binding SettingsVisibility}">

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0
+
+- Add wizard step 6 with game name, overview, development duration, and team-size fields.
+- Add twelve optional English GDD sections with focused writing guidance.
+- Save the complete six-step idea snapshot to SQLite with Idea as its initial stage.
+- Default a blank game name to NewGame and route an unspecified platform to Other.
+- Preserve catalog labels, GDD content, and nonblank references inside the saved document.
+- Update the same saved idea when Save Changes is selected instead of creating a duplicate.
+- Show saved ideas in a local read-only pool table with live PC, Mobile, and Other counts.
+
 ## 0.8.0
 
 - Add wizard step 5 with repeatable reference URL and note rows.
