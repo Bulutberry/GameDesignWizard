@@ -252,19 +252,20 @@ The model improves text; it does not decide the PDF layout. This separates writi
 
 ### Initial model candidates
 
-Use Qwen3-4B-Instruct-2507 as the initial quality baseline. Its publisher identifies it as a 4.0B-parameter, non-thinking model under Apache 2.0. This is a candidate for the application's workload, not a claim that it is the best small model available. [Publisher model card](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507)
+The first quality candidate is Qwen3.5-9B Q3_K_M. The GGUF conversion is published by Unsloth, while the model weights originate from Qwen's Apache 2.0 release. Its 4.67 GB download matches the intended model-size range. The 8 GB RTX 4060 Laptop test determines whether this quantization is usable in the application; file size alone does not establish memory use or writing quality. [Publisher model card](https://huggingface.co/Qwen/Qwen3.5-9B), [GGUF artifact](https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/blob/main/Qwen3.5-9B-Q3_K_M.gguf)
 
-Compare Qwen3-1.7B as a smaller alternative with thinking disabled through the correct chat template. The official GGUF repository currently provides a Q8_0 file; a Q4 variant would need a separately verified conversion or source. [Publisher model card](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF), [published files](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/tree/main)
+Compare Qwen3-4B-Instruct-2507 and Qwen3-1.7B only if the 9B experiment fails the quality, memory, or latency target, or if a smaller optional profile is needed. [4B model card](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507), [1.7B GGUF files](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/tree/main)
 
 | Candidate | Proposed experiment | Preliminary resource budget |
 | --- | --- | --- |
-| Qwen3-4B-Instruct-2507 | GGUF Q4_K_M, short section prompts | Roughly 2.5-3 GB weights; begin tests on 16 GB RAM machines and then evaluate 8 GB systems |
-| Qwen3-1.7B | Compare official Q8_0 with a verified Q4_K_M build | Official Q8_0 download is listed at about 1.83 GB; Q4 estimate is roughly 1-1.3 GB. Begin testing on 8 GB systems |
+| Qwen3.5-9B | Unsloth Q3_K_M GGUF, short section prompts | 4.67 GB artifact; test actual peak system and GPU memory on an 8 GB RTX 4060 Laptop GPU |
+| Qwen3-4B-Instruct-2507 | Verified GGUF Q4_K_M if the 9B profile is too slow or memory-heavy | Roughly 2.5-3 GB weights; measured memory remains to be determined |
+| Qwen3-1.7B | Compare publisher-hosted Q8_0 as a lightweight fallback | Official Q8_0 download is listed at about 1.83 GB; measured memory remains to be determined |
 | AI disabled | Full editing and export workflow | Measure application memory independently of inference |
 
 These are planning estimates, not minimum requirements or measured performance. Runtime memory also includes the context/KV cache, working buffers, application, and OS. The final model revision, quantization, file sizes, checksums, RAM requirements, and expected speed are release outputs from benchmarking.
 
-Do not assume that a GGUF file for the 4B instruction variant is publisher-hosted. Verify a specific quantized artifact and its provenance or reproducibly convert the official checkpoint with a pinned llama.cpp toolchain. Conversion is a maintainer task; end users do not need Python. Use an exact tested model/runtime pair and record its llama.cpp build compatibility.
+Qwen3.5 does not use the older `/no_think` prompt switch. Request non-thinking generation with `chat_template_kwargs.enable_thinking=false` and use the model publisher's recommended non-thinking sampling values. Do not assume that a GGUF file for the 4B instruction variant is publisher-hosted. Verify a specific quantized artifact and its provenance or reproducibly convert the official checkpoint with a pinned llama.cpp toolchain. Conversion is a maintainer task; end users do not need Python. Use an exact tested model/runtime pair and record its llama.cpp build compatibility.
 
 ### User interaction and generation
 

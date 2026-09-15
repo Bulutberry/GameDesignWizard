@@ -109,7 +109,7 @@
                         CornerRadius="10" Padding="16" Margin="0,14,0,0">
                     <StackPanel>
                         <TextBlock Text="Recommended first test" FontWeight="SemiBold" FontSize="13" />
-                        <TextBlock Text="Qwen3-1.7B-GGUF Q8_0 is the smaller official starting point. Qwen3-4B-Instruct-2507 is the quality candidate after a compatible GGUF is selected and verified. Runtime and model licenses remain their publishers' licenses."
+                        <TextBlock Text="First quality test: Qwen3.5-9B Q3_K_M GGUF, about 4.67 GB, converted by Unsloth from Qwen's Apache 2.0 model. Download the model and a compatible Windows llama.cpp server separately. Check the setup guide for tested runtime versions and hardware notes."
                                    Foreground="{StaticResource MutedInkBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
                     </StackPanel>
                 </Border>

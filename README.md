@@ -4,7 +4,7 @@ GameDesignWizard is an English-first, offline Windows desktop application for sh
 
 ## Current prototype
 
-Prototype 0.19.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, PDF and Markdown GDD export, complete and filtered idea-pool XLSX export, bulk catalog exchange, distributable defaults, and the first optional local-AI editing slice:
+Prototype 0.20.0 validates the visual direction, persistent dynamic catalogs, the complete six-step wizard, local idea saving and editing, searchable pool views, managed media attachments, PDF and Markdown GDD export, complete and filtered idea-pool XLSX export, bulk catalog exchange, distributable defaults, and the first tested local-AI editing slice:
 
 - Home navigation
 - Platform selection with data-bound buttons and a visible selected state
@@ -46,7 +46,7 @@ Prototype 0.19.0 validates the visual direction, persistent dynamic catalogs, th
 
 Catalog data is stored locally in `%LOCALAPPDATA%\GameDesignWizard\game-design-wizard.db`.
 
-Local AI is optional. Its runtime and model paths are stored in `%LOCALAPPDATA%\GameDesignWizard\local-ai-settings.json`; model weights are never added to the repository or required for ordinary editing and export. Open **Local AI Setup** in Settings, then see [`docs/local-ai-setup.md`](docs/local-ai-setup.md) for the current manual setup and prototype limits.
+Local AI is optional. Its runtime and model paths are stored in `%LOCALAPPDATA%\GameDesignWizard\local-ai-settings.json`; model weights are never added to the repository or required for ordinary editing and export. The first quality candidate is Qwen3.5-9B Q3_K_M (about 4.67 GB), downloaded separately from its model publisher. Open **Local AI Setup** in Settings, then see [`docs/local-ai-setup.md`](docs/local-ai-setup.md) for manual setup and pinned test files. The first [device benchmark](docs/local-ai-benchmark-qwen35.md) records three CUDA edits and one CPU baseline; the full quality gate is still pending.
 
 Saved image and audio attachments are copied into `%LOCALAPPDATA%\GameDesignWizard\media` and referenced by relative paths. Moving or deleting the original source file does not break the saved idea.
 

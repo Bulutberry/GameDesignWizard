@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.20.0
+
+- Make Qwen3.5-9B Q3_K_M the first local-AI quality test candidate within the requested 4–5 GB model range.
+- Remove the unsupported Qwen3 soft prompt switch and send `chat_template_kwargs.enable_thinking=false` with the publisher's non-thinking sampling values.
+- Tighten GDD editing instructions after a real sparse-notes test added unsupported environmental and progression details.
+- Verify a pinned Unsloth GGUF revision and SHA-256 plus the official llama.cpp b10964 Windows CUDA archives and SHA-256 values.
+- Record three real CUDA GDD edits, one CPU baseline, approximate peak GPU/process memory, and the remaining 30-case quality gate in the benchmark report.
+- Keep model weights and runtime binaries outside the repository and base application download.
+
 ## 0.19.0
 
 - Add optional local AI setup with user-selected llama.cpp server and GGUF model paths.

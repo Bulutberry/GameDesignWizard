@@ -209,7 +209,7 @@ public sealed class LlamaServerLocalAiService : ILocalAiService
                 new
                 {
                     role = "system",
-                    content = "You are an editor for English game design documents. Improve clarity, structure, and practical detail without changing the designer's decisions. Never invent mechanics, features, scope, or facts. Preserve useful constraints. Return only the revised section text in plain text. Do not add a heading, preamble, commentary, markdown fence, or explanation. /no_think"
+                    content = "You are a careful editor for English game design documents. Rewrite the supplied section for clarity and logical order using only explicit facts in the notes and project context. Do not infer or invent specific actions, locations, hazards, rules, technology, schedules, or deliverables. A game title is a label, not a location. Keep unresolved details unresolved. Preserve every exclusion and constraint. Return only the revised section text, with no heading, preamble, commentary, markdown fence, or explanation."
                 },
                 new
                 {
@@ -223,6 +223,10 @@ public sealed class LlamaServerLocalAiService : ILocalAiService
             min_p = 0.0,
             presence_penalty = 1.5,
             max_tokens = configuration.MaxOutputTokens,
+            chat_template_kwargs = new
+            {
+                enable_thinking = false
+            },
             stream = false
         };
         return new StringContent(
@@ -234,7 +238,7 @@ public sealed class LlamaServerLocalAiService : ILocalAiService
     private static string BuildUserPrompt(GddAssistRequest request)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Improve the following GDD section using only the supplied project context.");
+        builder.AppendLine("Edit the following GDD section. Make the English clearer without adding design decisions or unsupported detail.");
         builder.AppendLine();
         AppendValue(builder, "Section", request.SectionTitle);
         AppendValue(builder, "Section purpose", request.SectionGuidance);
